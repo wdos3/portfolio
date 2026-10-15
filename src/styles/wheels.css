@@ -26,14 +26,13 @@
 .wheel--center { left: 50%; width: calc(var(--wheel-width) * 1.08); animation-delay: 220ms; }
 .wheel--right { left: calc(100% - var(--wheel-width) / 2); animation-delay: 300ms; }
 .wheel-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.wheel-frame path { vector-effect: non-scaling-stroke; transition: opacity 140ms ease, stroke 220ms ease; }
+.wheel-frame path, .segment-frame path { vector-effect: non-scaling-stroke; transition: stroke 220ms ease; }
 .wheel-frame .rail-front, .wheel-frame .rail-inner { transition: d 420ms cubic-bezier(0.22, 0.7, 0.25, 1), stroke 220ms ease; }
 .rail-front { stroke: #ddd; stroke-width: 1.25; }
 .rail-back { stroke: #858585; stroke-width: 0.65; }
 .rail-inner { stroke: #969696; stroke-width: 0.75; }
 .wheel--center .rail-front { stroke: #fff; stroke-width: 1.45; }
 .row-line { stroke: #7d7d7d; stroke-width: 0.6; }
-.row-line--edge { stroke: #414141; stroke-width: 0.6; }
 .wheel-title {
   position: absolute;
   top: var(--heading-y);
@@ -52,34 +51,46 @@
 }
 .wheel-surface { position: absolute; inset: 0; clip-path: inset(var(--entries-top) -20px 1%); transition: opacity 140ms ease; cursor: grab; }
 .wheel[data-dragging='true'], .wheel[data-dragging='true'] .wheel-surface, .wheel[data-dragging='true'] .wheel-item { cursor: grabbing; }
-.wheel-item {
+.wheel-segment {
   position: absolute;
   top: 0;
   left: 0;
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.segment-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; opacity: var(--entry-fade); }
+.wheel-item {
+  display: flex;
   align-items: center;
-  column-gap: 14px;
-  width: calc(var(--item-width) * 1cqw);
-  height: 44px;
-  padding: 0 10px;
+  width: 100%;
+  height: 100%;
+  padding: 8px 16px;
   border: 0;
   background: none;
   opacity: var(--entry-opacity);
   text-align: left;
-  transform: translate3d(calc(var(--item-x) * 1cqw - 50%), calc(var(--item-y) * 1cqh - 50%), 0);
-  will-change: transform;
+  /* Content is laid out in the flat cell, then projected with its boundaries.
+     Clipping is a safeguard, not the source of the cylindrical movement. */
+  clip-path: inset(0);
 }
-.wheel-icon {
+.wheel-content {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  transform-origin: center;
+  pointer-events: none;
+}
+.wheel-glyph, .wheel-icon {
+  display: block;
   width: 28px;
   height: 28px;
-  transform: perspective(600px) rotateX(var(--icon-tilt)) skewY(var(--icon-skew)) scale(var(--icon-scale));
   pointer-events: none;
-  will-change: transform;
 }
-.wheel--center .wheel-icon { width: 32px; height: 32px; }
-.wheel-item[data-selected='true'] { z-index: 2; }
-.wheel-item:focus-visible { outline-offset: 6px; }
+.wheel--center .wheel-content { grid-template-columns: 32px minmax(0, 1fr); }
+.wheel--center :is(.wheel-glyph, .wheel-icon) { width: 32px; height: 32px; }
+.wheel-item:focus-visible { outline-offset: -6px; }
 .wheel-label {
   font-size: clamp(13px, 0.95vw, 15px);
   font-weight: 400;

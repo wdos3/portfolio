@@ -107,15 +107,15 @@ test('normal motion follows the curved path and changes foreground emphasis', as
   await page.evaluate(()=>Promise.all(document.getAnimations().map(animation=>animation.finished)));
   const frame = (await about.boundingBox())!;
   const next = about.getByRole('button', { name: 'Experience', exact: true });
-  const before = (await next.boundingBox())!;
-  const glyphWidth = (await next.locator('svg').boundingBox())!.width;
+  const glyphBefore = (await next.locator('svg').boundingBox())!;
   const current = (await about.getByRole('button', { name: 'Education', exact: true }).boundingBox())!;
   await page.mouse.move(frame.x + frame.width/2, frame.y + frame.height/2);
   await page.mouse.wheel(0, 115 * await page.evaluate(()=>devicePixelRatio));
   await expect(next).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async()=>Math.abs((await next.boundingBox())!.y-current.y)).toBeLessThan(1);
-  expect(Math.abs((await next.boundingBox())!.x-before.x)).toBeGreaterThan(1);
-  expect((await next.locator('svg').boundingBox())!.width).toBeGreaterThan(glyphWidth*1.05);
+  const glyphAfter = (await next.locator('svg').boundingBox())!;
+  expect(Math.abs(glyphAfter.x-glyphBefore.x)).toBeGreaterThan(1);
+  expect(glyphAfter.height).toBeGreaterThan(glyphBefore.height*1.05);
   expect(await about.boundingBox()).toEqual(frame);
 });
 

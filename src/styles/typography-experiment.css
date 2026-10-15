@@ -45,18 +45,20 @@
 .wheel-item {
   color: var(--experiment-inactive);
   opacity: calc((var(--experiment-inactive-opacity) + var(--experiment-inactive-depth-range) * var(--entry-depth)) * var(--entry-fade));
-  transition: color var(--experiment-emphasis-duration) ease, opacity var(--experiment-emphasis-duration) ease;
+  /* Depth opacity follows the projection frame, so fading cannot trail a drag. */
+  transition: color var(--experiment-emphasis-duration) ease;
 }
 .wheel-item[data-selected='true'] {
   color: var(--experiment-selected);
   opacity: var(--entry-fade);
 }
-.wheel-label {
-  transform-origin: left center;
+.wheel-content {
   transition: transform var(--experiment-emphasis-duration) ease;
 }
 .wheel-item[data-selected='true'] .wheel-label {
   font-weight: var(--experiment-selected-weight);
+}
+.wheel-item[data-selected='true'] .wheel-content {
   transform: scale(var(--experiment-selected-scale));
 }
 

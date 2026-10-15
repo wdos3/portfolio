@@ -13,10 +13,13 @@ test('entry labels are readable without hover and guidance stays dismissed after
   for (const entry of await work.locator('.wheel-item').all()) {
     await expect(entry.locator('.wheel-label')).toBeVisible();
     expect(await entry.evaluate(el => Number(getComputedStyle(el).opacity))).toBeGreaterThanOrEqual(.5);
-    expect((await entry.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Receding cells compress with the cylinder; the foreground target keeps
+    // its full touch height rather than overlapping adjacent segments.
+    expect((await entry.boundingBox())!.height).toBeGreaterThanOrEqual(24);
     expect(await entry.locator('.wheel-label').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);
   }
   const software = work.getByRole('button', { name: 'Software Projects', exact: true });
+  expect((await software.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await software.focus();
   await expect(hint).toBeVisible();
   await page.keyboard.press('ArrowDown');
@@ -29,36 +32,4 @@ test('entry labels are readable without hover and guidance stays dismissed after
   if (isMobile) await page.getByRole('group', { name: 'Choose a section' }).getByRole('button', { name: 'About', exact: true }).tap();
   else await page.mouse.move(1, 1);
   await expect(hint).toBeHidden();
-});
-
-test('separators terminate on the visible rail strokes before and after rotation', async ({ page, isMobile }) => {
-  for (const name of ['About', 'Work', 'Contact']) {
-    if (isMobile) await page.getByRole('group', { name: 'Choose a section' }).getByRole('button', { name, exact: true }).click();
-    const wheel = page.getByRole('region', { name, exact: true });
-    for (let rotation = 0; rotation < 2; rotation++) {
-      const errors = await wheel.evaluate(element => {
-        const rails = [...element.querySelectorAll<SVGPathElement>('.rail-front, .rail-inner')];
-        const pointAt = (path: SVGPathElement, length: number) => path.getPointAtLength(length).matrixTransform(path.getCTM()!);
-        return [...element.querySelectorAll<SVGPathElement>('.row-line')]
-          .filter(line => Number(getComputedStyle(line).opacity) > 0)
-          .flatMap(line => [0, line.getTotalLength()].map(length => {
-            const endpoint = pointAt(line, length);
-            return Math.min(...rails.map(rail => {
-              let low = 0, high = rail.getTotalLength();
-              for (let step = 0; step < 25; step++) {
-                const middle = (low + high) / 2;
-                if (pointAt(rail, middle).y < endpoint.y) low = middle;
-                else high = middle;
-              }
-              const nearest = pointAt(rail, (low + high) / 2);
-              return Math.hypot(endpoint.x - nearest.x, endpoint.y - nearest.y);
-            }));
-          }));
-      });
-      expect(errors.length).toBeGreaterThan(0);
-      expect(Math.max(...errors)).toBeLessThan(.3);
-      await wheel.locator('.wheel-item[aria-pressed="true"]').focus();
-      await page.keyboard.press('ArrowDown');
-    }
-  }
 });

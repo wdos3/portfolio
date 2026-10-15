@@ -36,7 +36,7 @@ The initial profile copy and project descriptions/technologies are explicitly la
 
 Each entry has an `icon` key corresponding to the thin SVG icons in `src/components/Icon.tsx`. Projects may omit it to use the folder icon. Names are retained for screen readers, hover/focus labels, and detail headings. No item numbering is displayed. Software Projects starts in front of WORK; the other wheels start with their second entry when available. Small screens initially show WORK.
 
-Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. ABOUT, WORK, and CONTACT are fixed topic headings above the selectable entries; they never occupy a wheel slot. The icons and separators follow the same cylindrical path. Only the rails morph during expansion, so row separators cannot lag behind a drag. The retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
+Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. ABOUT, WORK, and CONTACT are stationary topics within the upper cylinder face; they never occupy a rotating slot. Their shared vertical anchor, surface centering, and perspective use the same geometry as the entries. A reserved upper region keeps rotating icons and separators clear of the topics. Only the rails morph during expansion, so row separators cannot lag behind a drag. The retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
 
 ## Direct links
 

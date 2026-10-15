@@ -22,6 +22,10 @@ interface WheelProps {
 // Coordinates share a 360 × 640 design space with the SVG rails.
 const itemAngle = 0.48;
 const rotationRadius = 235;
+const entriesTop = 190;
+// Both rail variants enclose their usable face from y=80. The fixed topic
+// occupies the middle of the space above the rotating entries.
+const headingY = (80 + entriesTop) / 2;
 
 function rowGeometry(y: number, variant: WheelVariant) {
   if (variant === 'center') {
@@ -72,15 +76,19 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
     hadDetail.current = !!detail;
   }, [detail, ref, selected]);
   const rowY = (offset: number) => 330 + rotationRadius * Math.sin(offset * itemAngle);
-  const lastOffset = section.entries.length - position - 0.5;
-  const lastLine = section.entries.length > 0 && Math.abs(lastOffset) < 3.2
-    ? rowGeometry(rowY(lastOffset), section.variant)
-    : null;
+  const heading = rowGeometry(headingY, section.variant);
+  const wheelStyle = {
+    '--heading-x': `${(heading.left + heading.right) / 7.2}%`,
+    '--heading-y': `${headingY / 6.4}%`,
+    '--heading-skew': `${heading.skew}deg`,
+    '--entries-top': `${entriesTop / 6.4}%`,
+  } as CSSProperties;
 
   return (
     <section
       ref={ref}
       className={`wheel wheel--${section.variant}${expanded ? ' wheel--expanded' : ''}${parkSide ? ` wheel--parked wheel--parked-${parkSide}` : ''}`}
+      style={wheelStyle}
       data-section={section.id}
       data-mobile-active={mobileActive}
       data-dragging={dragging}
@@ -94,14 +102,21 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
     >
       <h2 id={`${section.id}-title`} className="wheel-title">{section.title}</h2>
       <svg className="wheel-frame" viewBox="0 0 360 640" preserveAspectRatio="none" fill="none" aria-hidden="true">
+        <defs>
+          <clipPath id={`${section.id}-entries-clip`}>
+            <rect x="-24" y={entriesTop} width="408" height={640 - entriesTop} />
+          </clipPath>
+        </defs>
         <RailFrame variant={section.variant} />
-        {section.entries.map((entry, index) => {
-          const offset = index - position;
-          if (Math.abs(offset - 0.5) > 3.2) return null;
-          const row = rowGeometry(rowY(offset - 0.5), section.variant);
-          return <path key={entry.id} className="row-line" d={`M ${row.left} ${row.leftY} L ${row.right} ${row.rightY}`} />;
-        })}
-        {lastLine && <path className="row-line row-line--edge" d={`M ${lastLine.left} ${lastLine.leftY} L ${lastLine.right} ${lastLine.rightY}`} />}
+        <g clipPath={`url(#${section.id}-entries-clip)`}>
+          {section.entries.length > 0 && Array.from({ length: section.entries.length + 1 }, (_, index) => {
+            const offset = index - position - 0.5;
+            if (Math.abs(offset) > 3.2) return null;
+            const row = rowGeometry(rowY(offset), section.variant);
+            const opacity = Math.max(0, Math.min(1, (Math.min(row.leftY, row.rightY) - entriesTop) / 32));
+            return <path key={index} className={`row-line${index === section.entries.length ? ' row-line--edge' : ''}`} opacity={opacity} d={`M ${row.left} ${row.leftY} L ${row.right} ${row.rightY}`} />;
+          })}
+        </g>
       </svg>
 
       <div className="wheel-surface" inert={!!detail} aria-hidden={!!detail}>
@@ -113,6 +128,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
           const angle = offset * itemAngle;
           const depth = Math.max(0, Math.cos(angle));
           const edgeFade = Math.max(0, Math.min(1, (1.4 - Math.abs(angle)) / 0.25));
+          const headingClearance = Math.max(0, Math.min(1, (y - entriesTop) / 48));
           const bend = section.variant === 'left' ? 52 : section.variant === 'right' ? -52 : 0;
           const x = (row.left + row.right) / 2 + bend * (1 - depth);
           const visible = Math.abs(angle) < 1.4;
@@ -122,7 +138,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
             '--icon-skew': `${row.skew}deg`,
             '--icon-tilt': `${-angle * 24}deg`,
             '--icon-scale': 0.52 + 0.48 * depth ** 4,
-            '--icon-opacity': (0.36 + 0.64 * depth ** 7) * edgeFade,
+            '--icon-opacity': (0.36 + 0.64 * depth ** 7) * edgeFade * headingClearance,
             visibility: visible ? 'visible' : 'hidden',
           } as CSSProperties;
           function activate() {

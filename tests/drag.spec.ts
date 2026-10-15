@@ -28,7 +28,7 @@ test('held drags track the pointer without icon or separator drift and snap only
   expect(await education.boundingBox()).toEqual(held);
   expect(await about.locator('.row-line').evaluateAll(lines => lines.map(line => line.getBoundingClientRect().y))).toEqual(separators);
   expect(await title.boundingBox()).toEqual(titleBefore);
-  expect(titleBefore!.y + titleBefore!.height).toBeLessThan(Math.min(...separators));
+  expect(titleBefore!.y + titleBefore!.height).toBeLessThan(held.y);
   await expect(page.locator('.detail-view')).toHaveCount(0);
   await page.mouse.up();
   const experience = about.getByRole('button', { name: 'Experience', exact: true });

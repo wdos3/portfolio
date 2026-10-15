@@ -1,11 +1,12 @@
 import type { CSSProperties } from 'react';
 import type { PortfolioEntry, PortfolioSection, WheelVariant } from '../data/portfolio';
 import { useWheel } from '../hooks/useWheel';
+import { Icon } from './Icon';
 
 interface WheelProps {
   section: PortfolioSection;
   mobileActive: boolean;
-  onActivate: (section: PortfolioSection, entry: PortfolioEntry, index: number) => void;
+  onActivate: (section: PortfolioSection, entry: PortfolioEntry) => void;
 }
 
 // Coordinates share a 360 × 640 design space with the SVG rails.
@@ -42,16 +43,13 @@ function RailFrame({ variant }: { variant: WheelVariant }) {
 }
 
 export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
-  const { ref, position, selected, select, canActivate, handlers } = useWheel(section.entries.length);
-  const radius = section.variant === 'center' ? 480 : 510;
-  const activeY = section.variant === 'center' ? 240 : 234;
-  const rowY = (offset: number) => activeY + radius * Math.sin(offset * 0.21);
+  const { ref, position, selected, select, canActivate, isTap, consumeClick, handlers } = useWheel(section.entries.length);
+  const rowY = (offset: number) => 330 + 235 * Math.sin(offset * 0.48);
   const titleLine = rowGeometry(section.variant === 'center' ? 98 : 79, section.variant);
   const lastOffset = section.entries.length - position - 0.5;
-  const lastLine = section.entries.length > 0 && lastOffset >= -0.7 && lastOffset <= 3.5
+  const lastLine = section.entries.length > 0 && Math.abs(lastOffset) < 3.2
     ? rowGeometry(rowY(lastOffset), section.variant)
     : null;
-  const contentInset = section.variant === 'left' ? 44 : section.variant === 'center' ? 40 : 28;
 
   return (
     <section
@@ -67,7 +65,7 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
         <path className="row-line row-line--edge" d={`M ${titleLine.left} ${titleLine.leftY} L ${titleLine.right} ${titleLine.rightY}`} />
         {section.entries.map((entry, index) => {
           const offset = index - position;
-          if (offset < -1.2 || offset > 3.7) return null;
+          if (Math.abs(offset - 0.5) > 3.2) return null;
           const row = rowGeometry(rowY(offset - 0.5), section.variant);
           return <path key={entry.id} className="row-line" d={`M ${row.left} ${row.leftY} L ${row.right} ${row.rightY}`} />;
         })}
@@ -81,16 +79,29 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
           const y = rowY(offset);
           const row = rowGeometry(y, section.variant);
           const active = selected === index;
-          const visible = offset >= -0.56 && offset <= 3.45;
+          const angle = offset * 0.48;
+          const depth = Math.max(0, Math.cos(angle));
+          const edgeFade = Math.max(0, Math.min(1, (1.4 - Math.abs(angle)) / 0.25));
+          const bend = section.variant === 'left' ? 52 : section.variant === 'right' ? -52 : 0;
+          const x = (row.left + row.right) / 2 + bend * (1 - depth);
+          const visible = Math.abs(angle) < 1.4;
           const style = {
-            top: `${y / 6.4}%`,
-            left: `${(row.left + contentInset) / 3.6}%`,
-            width: `${(row.right - row.left - contentInset - 20) / 3.6}%`,
-            '--row-skew': `${row.skew}deg`,
-            '--row-scale': Math.max(0.78, Math.cos(offset * 0.16)),
-            '--row-opacity': active ? 1 : Math.max(0.5, 0.63 - Math.abs(offset) * 0.035),
+            '--item-x': x / 3.6,
+            '--item-y': y / 6.4,
+            '--icon-skew': `${row.skew}deg`,
+            '--icon-tilt': `${-angle * 24}deg`,
+            '--icon-scale': 0.52 + 0.48 * depth ** 4,
+            '--icon-opacity': (0.36 + 0.64 * depth ** 7) * edgeFade,
             visibility: visible ? 'visible' : 'hidden',
           } as CSSProperties;
+          function activate() {
+            if (!canActivate()) return;
+            if (!active) {
+              select(index);
+              return;
+            }
+            onActivate(section, entry);
+          }
           return (
             <button
               key={entry.id}
@@ -98,17 +109,22 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
               style={style}
               data-index={index}
               data-selected={active}
+              aria-label={entry.name}
               aria-pressed={active}
-              aria-haspopup="dialog"
+              aria-haspopup={entry.kind === 'contact' && entry.type === 'external' && entry.value ? undefined : 'dialog'}
               tabIndex={active ? 0 : -1}
-              onClick={() => {
-                if (!canActivate()) return;
-                select(index);
-                onActivate(section, entry, index);
+              onPointerUp={(event) => {
+                if (event.pointerType === 'touch' && isTap(event)) {
+                  // Respond on release; the browser's synthesized click can be
+                  // delayed after a drag and must not activate the item twice.
+                  activate();
+                  consumeClick();
+                }
               }}
+              onClick={activate}
             >
-              <span className="wheel-item-name">{entry.name}</span>
-              <span className="wheel-item-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <Icon className="wheel-icon" name={entry.icon ?? 'folder'} />
+              <span className="wheel-label" aria-hidden="true">{entry.name}</span>
             </button>
           );
         })}

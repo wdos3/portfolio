@@ -13,12 +13,12 @@ export default function App() {
         <h1>{portfolio.name}</h1>
         <p>{portfolio.subtitle}</p>
       </div>
-      <WheelGroup onActivate={(section, entry, index) => {
+      <WheelGroup onActivate={(section, entry) => {
         if (entry.kind === 'contact' && entry.type === 'external' && entry.value) {
           window.open(entry.value, '_blank', 'noopener,noreferrer');
           return;
         }
-        setSelection({ section, entry, index });
+        setSelection({ section, entry });
       }} />
       {selection && <DetailView selection={selection} onClose={() => setSelection(null)} />}
     </main>

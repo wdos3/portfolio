@@ -9,15 +9,16 @@ const subscribeToMotion = (notify: () => void) => {
 };
 
 export function useWheel(count: number) {
+  const initialPosition = Math.min(1, Math.max(0, count - 1));
   const ref = useRef<HTMLElement>(null);
-  const targetRef = useRef(0);
-  const positionRef = useRef(0);
+  const targetRef = useRef(initialPosition);
+  const positionRef = useRef(initialPosition);
   const snapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const gesture = useRef<{ x: number; y: number; target: number; dragged: boolean } | null>(null);
-  const suppressClickUntil = useRef(0);
+  const gesture = useRef<{ id: number; x: number; y: number; target: number; dragged: boolean } | null>(null);
+  const suppressClick = useRef(false);
   const keyboardFocusRequested = useRef(false);
-  const [target, setTarget] = useState(0);
-  const [position, setPosition] = useState(0);
+  const [target, setTarget] = useState(initialPosition);
+  const [position, setPosition] = useState(initialPosition);
   const reducedMotion = useSyncExternalStore(
     subscribeToMotion,
     () => window.matchMedia(motionQuery).matches,
@@ -83,6 +84,7 @@ export function useWheel(count: number) {
   }, [count]);
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
+    suppressClick.current = false;
     const current = Math.round(targetRef.current);
     const destinations: Record<string, number> = {
       ArrowDown: current + 1,
@@ -104,12 +106,13 @@ export function useWheel(count: number) {
   function onPointerDown(event: PointerEvent<HTMLElement>) {
     if (!event.isPrimary || event.button !== 0) return;
     clearTimeout(snapTimer.current);
-    gesture.current = { x: event.clientX, y: event.clientY, target: targetRef.current, dragged: false };
+    suppressClick.current = false;
+    gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, target: targetRef.current, dragged: false };
   }
 
   function onPointerMove(event: PointerEvent<HTMLElement>) {
     const start = gesture.current;
-    if (!start) return;
+    if (!start || start.id !== event.pointerId) return;
     const distance = start.y - event.clientY;
     if (!start.dragged && Math.abs(event.clientX - start.x) > Math.abs(distance)) return;
     if (Math.abs(distance) > 7 && !start.dragged) {
@@ -118,13 +121,13 @@ export function useWheel(count: number) {
     }
     if (!start.dragged) return;
     event.preventDefault();
-    suppressClickUntil.current = performance.now() + 300;
+    suppressClick.current = true;
     const rowHeight = event.currentTarget.clientHeight * 0.157;
     moveTo(start.target + distance / rowHeight);
   }
 
   function finishGesture(event: PointerEvent<HTMLElement>) {
-    if (!gesture.current) return;
+    if (!gesture.current || gesture.current.id !== event.pointerId) return;
     if (gesture.current.dragged) moveTo(Math.round(targetRef.current));
     gesture.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -135,12 +138,18 @@ export function useWheel(count: number) {
   return {
     ref,
     position,
-    selected: Math.round(target),
+    selected: Math.round(position),
     select: (index: number) => {
       clearTimeout(snapTimer.current);
       moveTo(index);
     },
-    canActivate: () => performance.now() > suppressClickUntil.current,
+    canActivate: () => !suppressClick.current,
+    isTap: (event: PointerEvent<HTMLElement>) => {
+      const start = gesture.current;
+      return !!start && start.id === event.pointerId && !start.dragged
+        && Math.hypot(event.clientX - start.x, event.clientY - start.y) <= 7;
+    },
+    consumeClick: () => { suppressClick.current = true; },
     handlers: {
       onKeyDown,
       onPointerDown,

@@ -12,6 +12,15 @@ async function chooseSection(page: Page, name: string, mobile: boolean) {
   return page.getByRole('region', { name, exact: true });
 }
 
+async function openEntry(page: Page, section: string, name: string) {
+  const button = page.getByRole('region', { name: section, exact: true }).getByRole('button', { name, exact: true });
+  if (await button.getAttribute('aria-pressed') !== 'true') {
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+  }
+  await button.click();
+}
+
 test('monochrome interface fits the viewport with accessible wheel controls', async ({ page, isMobile }) => {
   await expect(page.locator('.wheel:visible')).toHaveCount(isMobile ? 1 : 3);
   const measurements = await page.evaluate(() => ({
@@ -23,12 +32,30 @@ test('monochrome interface fits the viewport with accessible wheel controls', as
   expect(measurements.background).toBe('rgb(0, 0, 0)');
   expect(measurements.overflow).toBe(false);
   expect(measurements.scrollHeight).toBeLessThanOrEqual(measurements.height);
-  await expect(page.getByRole('button', { name: 'About Me', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const about = page.getByRole('region', { name: 'About', exact: true });
+  const selected = about.locator('[aria-pressed="true"]');
+  await expect(selected).toHaveCount(1);
+  await expect(selected).toHaveAccessibleName('Education');
+  await expect(about.locator('.wheel-item svg')).toHaveCount(4);
+  await expect(page.locator('.wheel-item-number')).toHaveCount(0);
+  const emphasis = await about.evaluate((element) => {
+    const foreground = element.querySelector('.wheel-item[aria-pressed="true"] svg')!;
+    const neighbor = element.querySelector('.wheel-item[aria-pressed="false"] svg')!;
+    return {
+      foreground: foreground.getBoundingClientRect().width,
+      neighbor: neighbor.getBoundingClientRect().width,
+      foregroundOpacity: Number(getComputedStyle(foreground).opacity),
+      neighborOpacity: Number(getComputedStyle(neighbor).opacity),
+    };
+  });
+  expect(emphasis.foreground).toBeGreaterThan(emphasis.neighbor * 1.15);
+  expect(emphasis.foregroundOpacity).toBeGreaterThan(emphasis.neighborOpacity);
 });
 
 test('keyboard selection is bounded, opens details, and returns focus', async ({ page }) => {
   const first = page.getByRole('button', { name: 'About Me', exact: true });
-  await first.focus();
+  await page.getByRole('button', { name: 'Education', exact: true }).focus();
+  await page.keyboard.press('Home');
   await page.keyboard.press('ArrowUp');
   await expect(first).toBeFocused();
   await page.keyboard.press('ArrowDown');
@@ -54,11 +81,17 @@ test('keyboard selection is bounded, opens details, and returns focus', async ({
   await expect(first).toBeFocused();
 });
 
-test('clicking an inactive entry opens its content and keeps its selection', async ({ page }) => {
+test('clicking an inactive icon brings it forward; clicking it again opens details', async ({ page }) => {
   const experience = page.getByRole('button', { name: 'Experience', exact: true });
+  await experience.click();
+  await expect(experience).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await experience.click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Experience', exact: true })).toBeVisible();
+  await expect(page.locator('.detail-topline p')).toHaveText('About');
+  await expect(page.getByRole('dialog')).toHaveCSS('animation-name', 'none');
+  expect(await page.getByRole('dialog').evaluate((el) => getComputedStyle(el, '::backdrop').animationName)).toBe('none');
   await page.getByRole('button', { name: 'Close details' }).click();
   await expect(experience).toHaveAttribute('aria-pressed', 'true');
 });
@@ -67,26 +100,32 @@ test('wheel input affects only the hovered selector and snaps at both ends', asy
   const about = await chooseSection(page, 'About', isMobile);
   const box = await about.boundingBox();
   const deviceScale = await page.evaluate(() => devicePixelRatio);
+  const initial = (await about.getByRole('button', { name: 'Education', exact: true }).boundingBox())!;
+  const initialCenter = initial.y + initial.height / 2;
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.wheel(0, 115 * deviceScale);
-  await expect(about.getByRole('button', { name: 'Education', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const experience = about.getByRole('button', { name: 'Experience', exact: true });
+  await expect(experience).toHaveAttribute('aria-pressed', 'true');
   // Snapping is debounced after the last wheel event.
-  await expect.poll(() => about.getByRole('button', { name: 'Education', exact: true }).evaluate((el) => el.style.top)).toBe('36.5625%');
+  await expect.poll(async () => {
+    const current = (await experience.boundingBox())!;
+    return Math.abs(current.y + current.height / 2 - initialCenter);
+  }).toBeLessThan(1);
   await page.mouse.wheel(0, 5000);
   await expect(about.getByRole('button', { name: 'Skills', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.mouse.wheel(0, 5000);
   await expect(about.getByRole('button', { name: 'Skills', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.mouse.wheel(0, -5000);
   await expect(about.getByRole('button', { name: 'About Me', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.wheel--center [data-index="0"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.wheel--right [data-index="0"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.wheel--center [data-index="1"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.wheel--right [data-index="1"]')).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => scrollY)).toBe(0);
 });
 
 test('all placeholder contact entries have honest unavailable states and no fake links', async ({ page, isMobile }) => {
-  const contact = await chooseSection(page, 'Contact', isMobile);
+  await chooseSection(page, 'Contact', isMobile);
   for (const name of ['Email', 'GitHub', 'LinkedIn', 'Location']) {
-    await contact.getByRole('button', { name, exact: true }).click();
+    await openEntry(page, 'Contact', name);
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('heading', { name, exact: true })).toBeVisible();
@@ -97,9 +136,9 @@ test('all placeholder contact entries have honest unavailable states and no fake
 });
 
 test('all sample projects open with configurable metadata', async ({ page, isMobile }) => {
-  const projects = await chooseSection(page, 'Projects', isMobile);
+  await chooseSection(page, 'Projects', isMobile);
   for (const name of ['Chess Web App', 'Visual Instruction Tool', 'Audio ML Experiments', 'Automation Tools']) {
-    await projects.getByRole('button', { name, exact: true }).click();
+    await openEntry(page, 'Projects', name);
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
     await expect(page.getByRole('dialog')).toContainText('Built with');
@@ -114,14 +153,49 @@ test('smooth rotation settles without moving the wheel frame', async ({ page }) 
   await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished)));
   const about = page.getByRole('region', { name: 'About', exact: true });
   const before = (await about.boundingBox())!;
-  const education = about.getByRole('button', { name: 'Education', exact: true });
-  const initialTop = await education.evaluate((el) => parseFloat(el.style.top));
+  const experience = about.getByRole('button', { name: 'Experience', exact: true });
+  const previous = (await about.getByRole('button', { name: 'Education', exact: true }).boundingBox())!;
+  const initial = (await experience.boundingBox())!;
+  const initialGlyphWidth = (await experience.locator('svg').boundingBox())!.width;
   await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
   await page.mouse.wheel(0, 115 * await page.evaluate(() => devicePixelRatio));
-  await expect(education).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(() => education.evaluate((el) => parseFloat(el.style.top))).toBeLessThan(initialTop);
-  await expect.poll(() => education.evaluate((el) => el.style.top)).toBe('36.5625%');
+  await expect(experience).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => (await experience.boundingBox())!.y).toBeLessThan(initial.y);
+  await expect.poll(async () => Math.abs((await experience.boundingBox())!.y - previous.y)).toBeLessThan(1);
+  // The side wheel bends sideways as the icon comes forward.
+  expect(Math.abs((await experience.boundingBox())!.x - initial.x)).toBeGreaterThan(1);
+  expect((await experience.locator('svg').boundingBox())!.width).toBeGreaterThan(initialGlyphWidth * 1.15);
   expect(await about.boundingBox()).toEqual(before);
+});
+
+test('icon names appear on keyboard focus and remain available to screen readers', async ({ page }) => {
+  const education = page.getByRole('button', { name: 'Education', exact: true });
+  const label = education.locator('.wheel-label');
+  await expect(label).toHaveCSS('opacity', '0');
+  await education.focus();
+  await expect(label).toHaveCSS('opacity', '1');
+  await expect(education).toHaveAccessibleName('Education');
+});
+
+test('animated detail opening and repeated dismissal restore the selected icon', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished)));
+  const education = page.getByRole('button', { name: 'Education', exact: true });
+  await education.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(education).toBeFocused();
+  await education.click();
+  await expect(dialog).toBeVisible();
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(education).toBeFocused();
+  expect(errors).toEqual([]);
 });
 
 test('tablet layout keeps one readable wheel and switches sections', async ({ page }) => {
@@ -130,7 +204,8 @@ test('tablet layout keeps one readable wheel and switches sections', async ({ pa
   await chooseSection(page, 'Projects', true);
   await expect(page.locator('.wheel--right')).toBeVisible();
   const project = page.getByRole('button', { name: 'Chess Web App', exact: true });
-  expect(await project.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(17);
+  await expect(project.locator('svg')).toBeVisible();
+  expect((await project.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -143,7 +218,7 @@ test('no runtime errors or external asset requests occur during exploration', as
   });
   await page.reload();
   await chooseSection(page, 'About', isMobile);
-  await page.getByRole('button', { name: 'About Me', exact: true }).click();
+  await openEntry(page, 'About', 'About Me');
   await page.getByRole('button', { name: 'Close details' }).click();
   expect(errors).toEqual([]);
   expect(external).toEqual([]);
@@ -164,11 +239,28 @@ test('mobile section switching preserves selections and touch swipes do not open
   const centerX = box.x + box.width / 2;
   const middleY = box.y + box.height * 0.55;
   await swipe(centerX, middleY, centerX, middleY - box.height * 0.17);
-  await expect(about.getByRole('button', { name: 'Education', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(about.getByRole('button', { name: 'Experience', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await about.getByRole('button', { name: 'Experience', exact: true }).tap();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Close details' }).tap();
   await swipe(centerX + 70, middleY, centerX - 70, middleY);
   await expect(page.locator('.wheel--center')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await chooseSection(page, 'About', true);
-  await expect(about.getByRole('button', { name: 'Education', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(about.getByRole('button', { name: 'Experience', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('touch taps bring an icon forward before opening its details', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Touchscreen-specific behavior');
+  const experience = page.getByRole('button', { name: 'Experience', exact: true });
+  await experience.tap();
+  await expect(experience).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await experience.tap();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Experience', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close details' }).tap();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(experience).toHaveAttribute('aria-pressed', 'true');
 });

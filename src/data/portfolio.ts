@@ -1,3 +1,5 @@
+export type IconName = 'user' | 'education' | 'experience' | 'code' | 'mail' | 'github' | 'linkedin' | 'location' | 'chess' | 'instruction' | 'audio' | 'automation' | 'folder' | 'close';
+
 export interface ContentBlock {
   title: string;
   subtitle?: string;
@@ -9,6 +11,7 @@ export interface AboutEntry {
   id: string;
   kind: 'about';
   name: string;
+  icon: IconName;
   introduction: string;
   blocks: readonly ContentBlock[];
   placeholder: boolean;
@@ -18,6 +21,7 @@ export interface ContactEntry {
   id: string;
   kind: 'contact';
   name: string;
+  icon: IconName;
   type: 'email' | 'external' | 'location';
   value: string | null;
 }
@@ -26,6 +30,7 @@ export interface ProjectEntry {
   id: string;
   kind: 'project';
   name: string;
+  icon?: IconName;
   description: string;
   technologies: readonly string[];
   status: string;
@@ -42,6 +47,7 @@ export type WheelVariant = 'left' | 'center' | 'right';
 export interface PortfolioSection {
   id: SectionId;
   title: string;
+  icon: IconName;
   variant: WheelVariant;
   entries: readonly PortfolioEntry[];
 }
@@ -56,6 +62,7 @@ export const portfolio = {
       id: 'about-me',
       kind: 'about',
       name: 'About Me',
+      icon: 'user',
       placeholder: true,
       introduction: 'Exploring the space between thoughtful software and intelligent systems.',
       blocks: [
@@ -73,6 +80,7 @@ export const portfolio = {
       id: 'education',
       kind: 'about',
       name: 'Education',
+      icon: 'education',
       placeholder: true,
       introduction: 'A place for academic foundations and ongoing exploration.',
       blocks: [
@@ -91,6 +99,7 @@ export const portfolio = {
       id: 'experience',
       kind: 'about',
       name: 'Experience',
+      icon: 'experience',
       placeholder: true,
       introduction: 'Learning through building, collaborating, and solving practical problems.',
       blocks: [
@@ -109,6 +118,7 @@ export const portfolio = {
       id: 'skills',
       kind: 'about',
       name: 'Skills',
+      icon: 'code',
       placeholder: true,
       introduction: 'A considered toolkit. Replace these examples with your own experience.',
       blocks: [
@@ -119,16 +129,17 @@ export const portfolio = {
     },
   ] satisfies AboutEntry[],
   contact: [
-    { id: 'email', kind: 'contact', name: 'Email', type: 'email', value: null },
-    { id: 'github', kind: 'contact', name: 'GitHub', type: 'external', value: null },
-    { id: 'linkedin', kind: 'contact', name: 'LinkedIn', type: 'external', value: null },
-    { id: 'location', kind: 'contact', name: 'Location', type: 'location', value: null },
+    { id: 'email', kind: 'contact', name: 'Email', icon: 'mail', type: 'email', value: null },
+    { id: 'github', kind: 'contact', name: 'GitHub', icon: 'github', type: 'external', value: null },
+    { id: 'linkedin', kind: 'contact', name: 'LinkedIn', icon: 'linkedin', type: 'external', value: null },
+    { id: 'location', kind: 'contact', name: 'Location', icon: 'location', type: 'location', value: null },
   ] satisfies ContactEntry[],
   projects: [
     {
       id: 'chess-web-app',
       kind: 'project',
       name: 'Chess Web App',
+      icon: 'chess',
       placeholder: true,
       description: 'An interactive space to play, study, and explore chess on the web.',
       technologies: ['TypeScript', 'React'],
@@ -141,6 +152,7 @@ export const portfolio = {
       id: 'visual-instruction-tool',
       kind: 'project',
       name: 'Visual Instruction Tool',
+      icon: 'instruction',
       placeholder: true,
       description: 'Exploring how visual interfaces can make complex instructions easier to understand.',
       technologies: ['Python', 'TypeScript', 'React'],
@@ -153,6 +165,7 @@ export const portfolio = {
       id: 'audio-ml-experiments',
       kind: 'project',
       name: 'Audio ML Experiments',
+      icon: 'audio',
       placeholder: true,
       description: 'A collection of experiments at the intersection of sound and machine learning.',
       technologies: ['Python', 'PyTorch', 'Audio processing'],
@@ -165,6 +178,7 @@ export const portfolio = {
       id: 'automation-tools',
       kind: 'project',
       name: 'Automation Tools',
+      icon: 'automation',
       placeholder: true,
       description: 'Small, focused tools that turn repetitive tasks into simpler workflows.',
       technologies: ['Python', 'JavaScript'],
@@ -177,7 +191,7 @@ export const portfolio = {
 };
 
 export const sections: readonly PortfolioSection[] = [
-  { id: 'about', title: 'About', variant: 'left', entries: portfolio.about },
-  { id: 'contact', title: 'Contact', variant: 'center', entries: portfolio.contact },
-  { id: 'projects', title: 'Projects', variant: 'right', entries: portfolio.projects },
+  { id: 'about', title: 'About', icon: 'user', variant: 'left', entries: portfolio.about },
+  { id: 'contact', title: 'Contact', icon: 'mail', variant: 'center', entries: portfolio.contact },
+  { id: 'projects', title: 'Projects', icon: 'folder', variant: 'right', entries: portfolio.projects },
 ];

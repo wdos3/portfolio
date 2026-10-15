@@ -14,6 +14,7 @@
   min-width: 0;
   height: 100%;
   isolation: isolate;
+  container-type: size;
   touch-action: none;
   user-select: none;
   animation: wheel-appear 650ms ease 140ms both;
@@ -49,34 +50,58 @@
 .wheel--center .wheel-title { top: 23%; left: 50%; transform: translate(-50%, -50%); }
 .wheel--right .wheel-title { left: 45%; transform: translate(-50%, -50%) rotate(-11deg); }
 
-.wheel-surface { position: absolute; inset: 0; overflow: hidden; clip-path: inset(28.8% -10px 8.5%); }
+.wheel-surface { position: absolute; inset: 0; clip-path: inset(27% -20px 1%); }
 
 .wheel-item {
-  font-family: 'Arial Narrow', Arial, Helvetica, sans-serif;
   position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 50px;
-  padding: 5px 0;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
   border: 0;
   background: none;
-  opacity: var(--row-opacity);
-  font-size: clamp(16px, 1.44vw, 24px);
-  font-weight: 400;
-  line-height: 1.3;
-  letter-spacing: 0;
-  text-align: left;
-  transform: translateY(-50%) skewY(var(--row-skew)) scaleY(var(--row-scale));
-  transform-origin: center;
-  transition: opacity 160ms ease;
+  transform: translate3d(calc(var(--item-x) * 1cqw - 50%), calc(var(--item-y) * 1cqh - 50%), 0);
+  will-change: transform;
 }
 
-.wheel-item:hover, .wheel-item:focus-visible { opacity: 1; }
-.wheel-item:focus-visible { outline-offset: 9px; }
-.wheel-item-name { white-space: nowrap; }
-.wheel-item-number { flex-shrink: 0; font-size: 0.7em; font-weight: 400; letter-spacing: -0.04em; }
+.wheel-icon {
+  width: 56px;
+  height: 56px;
+  opacity: var(--icon-opacity);
+  transform: perspective(600px) rotateX(var(--icon-tilt)) skewY(var(--icon-skew)) scale(var(--icon-scale));
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.wheel-item[data-selected='true'] { z-index: 2; }
+.wheel-item:focus-visible { outline-offset: 6px; }
+
+.wheel-label {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 50%;
+  padding: 4px 7px;
+  background: #000;
+  color: #ccc;
+  opacity: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -3px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.wheel-item:focus-visible .wheel-label { opacity: 1; transform: translate(-50%, 0); }
+
+@media (hover: hover) {
+  .wheel-item:hover .wheel-label { opacity: 1; transform: translate(-50%, 0); }
+}
+
 .wheel-empty { position: absolute; top: 38%; width: 100%; color: #aaa; text-align: center; font-size: 14px; }
 
 .interaction-hint {
@@ -99,7 +124,6 @@
 
 @media (min-width: 901px) and (max-width: 1100px) {
   .wheel-group { width: 88vw; gap: 4vw; }
-  .wheel-item { font-size: clamp(13px, 1.6vw, 18px); }
   .wheel-title { font-size: 13px; }
 }
 
@@ -119,21 +143,25 @@
     margin: 0 0 6px;
   }
   .mobile-sections button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 48px;
     min-height: 44px;
-    padding: 0 4px;
+    padding: 0;
     border: 0;
     background: none;
     color: #999;
-    font-size: 10px;
-    letter-spacing: 0.19em;
-    text-transform: uppercase;
   }
-  .mobile-sections button[aria-pressed='true'] { color: #fff; text-decoration: underline; text-underline-offset: 9px; text-decoration-thickness: 1px; }
+  .mobile-sections svg { width: 20px; height: 20px; }
+  .mobile-sections button[aria-pressed='true'] { color: #fff; }
+  .mobile-sections button[aria-pressed='true']::after { content: ''; position: absolute; bottom: 0; width: 20px; height: 1px; background: #fff; }
+  .section-label { position: absolute; top: 100%; color: #bbb; opacity: 0; font-size: 10px; letter-spacing: 0.06em; }
+  .mobile-sections button:focus-visible .section-label { opacity: 1; }
   .wheel-group { display: block; width: min(88vw, 355px); height: clamp(370px, 58svh, 565px); }
   .wheel[data-mobile-active='false'] { display: none; }
   .wheel { animation: appear 200ms ease both; }
   .wheel-title { font-size: 16px; }
-  .wheel-item { font-size: clamp(17px, 5vw, 21px); }
   .wheel-frame { overflow: hidden; }
   .interaction-hint { margin-top: 20px; font-size: 9px; }
   .desktop-hint { display: none; }

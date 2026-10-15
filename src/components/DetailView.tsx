@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PortfolioEntry, PortfolioSection, ContactEntry } from '../data/portfolio';
+import { Icon } from './Icon';
 
 export interface DetailSelection {
   section: PortfolioSection;
   entry: PortfolioEntry;
-  index: number;
 }
 
 function ContactContent({ entry }: { entry: ContactEntry }) {
@@ -42,7 +42,9 @@ function ContactContent({ entry }: { entry: ContactEntry }) {
 export function DetailView({ selection, onClose }: { selection: DetailSelection; onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-  const { entry, section, index } = selection;
+  const closeAnimation = useRef<Animation | null>(null);
+  const [closing, setClosing] = useState(false);
+  const { entry, section } = selection;
 
   useEffect(() => {
     const dialog = dialogRef.current!;
@@ -51,16 +53,44 @@ export function DetailView({ selection, onClose }: { selection: DetailSelection;
     }
     dialog.showModal();
     return () => {
+      closeAnimation.current?.cancel();
       openerRef.current?.focus({ preventScroll: true });
     };
   }, []);
 
+  function requestClose() {
+    const dialog = dialogRef.current!;
+    if (closing) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      dialog.close();
+      return;
+    }
+    setClosing(true);
+    const current = getComputedStyle(dialog);
+    const animation = dialog.animate(
+      [{ opacity: current.opacity, transform: current.transform }, { opacity: 0, transform: 'translate3d(0, 8px, 0) scale(0.985)' }],
+      { duration: 180, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' },
+    );
+    closeAnimation.current = animation;
+    void animation.finished.then(
+      () => dialog.close(),
+      (error: unknown) => {
+        // Unmounting cancels an in-progress animation; other failures are unexpected.
+        if (!(error instanceof DOMException && error.name === 'AbortError')) throw error;
+      },
+    );
+  }
+
   return (
     <dialog
       ref={dialogRef}
-      className="detail-view"
+      className={`detail-view${closing ? ' detail-view--closing' : ''}`}
       aria-labelledby="detail-title"
       onClose={onClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        requestClose();
+      }}
       onKeyDown={(event) => {
         if (event.key !== 'Tab') return;
         const controls = event.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
@@ -76,13 +106,16 @@ export function DetailView({ selection, onClose }: { selection: DetailSelection;
       }}
     >
       <div className="detail-topline">
-        <p>{section.title} <span aria-hidden="true">/</span> {String(index + 1).padStart(2, '0')}</p>
-        <button className="close-detail" onClick={() => dialogRef.current?.close()} aria-label="Close details" autoFocus>
-          Close <span aria-hidden="true">×</span>
+        <p>{section.title}</p>
+        <button className="close-detail" onClick={requestClose} aria-label="Close details" autoFocus>
+          <Icon name="close" />
         </button>
       </div>
       <div className="detail-body">
-        <h2 id="detail-title">{entry.name}</h2>
+        <div className="detail-heading">
+          <Icon name={entry.icon ?? 'folder'} />
+          <h2 id="detail-title">{entry.name}</h2>
+        </div>
         {entry.kind !== 'contact' && entry.placeholder && <p className="draft-label">{entry.kind === 'project' ? 'Sample project' : 'Profile draft'}</p>}
         {entry.kind === 'about' && (
           <>

@@ -27,16 +27,18 @@ Edit **`src/data/portfolio.ts`**:
 - `name`, `subtitle`: identity.
 - `about`: editable introductions and content blocks. Set `placeholder: false` after replacing draft content.
 - `contact`: replace `null` values with your email address, full HTTPS GitHub/LinkedIn profile URLs, and city/country. Unset values show an honest unavailable state. Configured profile items open in a new tab; email offers a mail link and copy action.
-- `projects`: add/remove objects freely; numbering and wheel limits follow the array. Each supports `description`, `technologies`, `status`, `repositoryUrl`, `demoUrl`, and `extendedDescription`. Keep unavailable URLs `null`; set `placeholder: false` for actual projects. Use unique, stable `id` values.
+- `projects`: add/remove objects freely; wheel limits follow the array. Each supports `description`, `technologies`, `status`, `repositoryUrl`, `demoUrl`, and `extendedDescription`. Keep unavailable URLs `null`; set `placeholder: false` for actual projects. Use unique, stable `id` values.
 
 The initial profile copy and project descriptions/technologies are explicitly labeled examples, not claims about the owner. No personal contact information is prefilled.
 
-Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. Shared typography and detail views live in `src/styles/global.css`.
+Each entry has an `icon` key corresponding to the thin SVG icons in `src/components/Icon.tsx`. Projects may omit it to use the folder icon. Names are retained for screen readers, hover/focus labels, and detail headings. No item numbering is displayed. The second entry starts in the foreground when available, giving its neighbors room above and below.
+
+Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. The icons follow a sine/cosine cylindrical path; their transforms and opacity update without moving the wheel frames. Shared typography and detail views live in `src/styles/global.css`.
 
 ## Controls
 
 - Scroll over one wheel or drag vertically: select and snap, bounded at both ends.
-- Click any visible entry: select it and open details (or a configured external profile).
+- Click an inactive icon: bring it to the foreground. Click the selected icon: reveal details (or open a configured external profile). Names appear on hover or keyboard focus.
 - Tab: move between wheels. Arrow Up/Down, Page Up/Down, Home/End: select within the focused wheel. Enter/Space: open.
 - Escape or Close: dismiss details and restore focus and wheel selections.
 - Mobile: use the three section controls or swipe horizontally. Vertical swipes rotate the visible wheel. Switching sections preserves each selection.

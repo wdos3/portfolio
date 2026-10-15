@@ -82,9 +82,10 @@ a { color: #fff; text-underline-offset: 5px; }
   overscroll-behavior: contain;
 }
 
-.detail-view[open] { animation: detail-in 240ms ease both; }
+.detail-view[open] { animation: detail-in 280ms cubic-bezier(0.2, 0.7, 0.25, 1) both; }
 
-.detail-view::backdrop { background: rgb(0 0 0 / 97%); }
+.detail-view::backdrop { background: rgb(0 0 0 / 96%); animation: appear 220ms ease both; }
+.detail-view--closing::backdrop { animation: backdrop-out 180ms ease both; }
 
 .detail-topline {
   display: flex;
@@ -103,21 +104,20 @@ a { color: #fff; text-underline-offset: 5px; }
   text-transform: uppercase;
 }
 
-.detail-topline p span { padding: 0 12px; color: #777; }
-
 .close-detail {
-  display: flex;
-  align-items: center;
-  gap: 18px;
+  display: grid;
+  place-items: center;
+  width: 44px;
   min-height: 44px;
-  padding: 0 8px;
+  padding: 0;
   border: 0;
   background: none;
-  font-size: 12px;
-  letter-spacing: 0.05em;
 }
 
-.close-detail span { font-size: 25px; font-weight: 300; }
+.close-detail svg { width: 22px; height: 22px; }
+
+.detail-heading { display: flex; align-items: center; gap: 22px; }
+.detail-heading > svg { flex-shrink: 0; width: 38px; height: 38px; }
 
 .detail-body { padding: 38px 2px 20px; }
 
@@ -207,7 +207,8 @@ a { color: #fff; text-underline-offset: 5px; }
 
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
 
-@keyframes detail-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes detail-in { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.975); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 
 @media (max-width: 900px) {
   .identity { padding-top: clamp(48px, 9svh, 85px); }
@@ -230,7 +231,7 @@ a { color: #fff; text-underline-offset: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *, *::before, *::after, dialog::backdrop {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;

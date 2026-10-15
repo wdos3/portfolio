@@ -22,6 +22,12 @@ npm run preview
 
 Deploy `dist/` to any static host. Vite uses relative asset paths, so repository subpaths are supported. The app needs no backend, environment variables, or runtime network requests.
 
+## GitHub Pages
+
+The `.github/workflows/pages.yml` workflow builds and deploys on pushes to `main`, or manually from the Actions tab. In repository Settings → Pages, select **GitHub Actions** as the publishing source. The workflow installs the locked dependencies, runs lint and the TypeScript/production build, and uploads only `dist/`. It needs no personal access token or repository secrets.
+
+Relative asset URLs and hash-based detail links support the `/portfolio/` project path without changing the Vite configuration. Edit `src/data/portfolio.ts` and push to `main` to update the site.
+
 ## Customize
 
 Edit **`src/data/portfolio.ts`**:

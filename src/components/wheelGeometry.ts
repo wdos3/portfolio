@@ -55,6 +55,15 @@ export function rowGeometry(y: number, variant: WheelVariant) {
     : { left, right, leftY, rightY, skew };
 }
 
+export function focusBounds(variant: WheelVariant) {
+  const row = rowGeometry(wheelGeometry.focusY, variant);
+  const back = railX(variant === 'center' ? centerBack : outerBack, wheelGeometry.focusY);
+  return {
+    left: (variant === 'right' ? row.left : back) / wheelGeometry.width,
+    right: (variant === 'left' ? row.right : wheelGeometry.width - back) / wheelGeometry.width,
+  };
+}
+
 interface Point { x: number; y: number }
 export interface WheelSize { width: number; height: number }
 

@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import type { PortfolioEntry, PortfolioSection, WheelVariant } from '../data/portfolio';
 import { useWheel } from '../hooks/useWheel';
 import { WheelSegment } from './WheelSegment';
-import { centerBack, centerRail, innerRail, mirrorRail, outerBack, outerRail, railPath, railX, rowGeometry, wheelGeometry } from './wheelGeometry';
+import { centerBack, centerRail, focusBounds, innerRail, mirrorRail, outerBack, outerRail, railPath, rowGeometry, wheelGeometry } from './wheelGeometry';
 import { DetailView } from './DetailView';
 import type { DetailSelection } from '../routing';
 
@@ -69,16 +69,15 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
     hadDetail.current = !!detail;
   }, [detail, ref, selected]);
   const heading = rowGeometry(headingY, section.variant);
-  const focus = rowGeometry(focusY, section.variant);
-  const backX = railX(section.variant === 'center' ? centerBack : outerBack, focusY);
+  const focus = focusBounds(section.variant);
   const wheelStyle = {
     '--heading-x': `${(heading.left + heading.right) / 7.2}%`,
     '--heading-y': `${headingY / 6.4}%`,
     '--heading-skew': `${heading.skew}deg`,
     '--entries-top': `${entriesTop / 6.4}%`,
     '--focus-y': `${focusY / 6.4}%`,
-    '--focus-left': `${(section.variant === 'right' ? focus.left : backX) / 3.6}%`,
-    '--focus-right': `${(section.variant === 'left' ? focus.right : 360 - backX) / 3.6}%`,
+    '--focus-left': `${focus.left * 100}%`,
+    '--focus-right': `${focus.right * 100}%`,
   } as CSSProperties;
 
   return (

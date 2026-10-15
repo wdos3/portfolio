@@ -2,6 +2,7 @@
 .wheel-group {
   --wheel-gap: 4.6vw;
   --wheel-width: calc((100% - 2 * var(--wheel-gap)) / 3);
+  --center-wheel-width: calc(var(--wheel-width) * 1.08);
   position: relative;
   width: min(70.5vw, 1200px);
   height: min(60vh, 600px);
@@ -23,7 +24,7 @@
   transition: left 420ms cubic-bezier(0.22, 0.7, 0.25, 1), width 420ms cubic-bezier(0.22, 0.7, 0.25, 1), transform 420ms ease, opacity 220ms ease;
 }
 .wheel--left { left: calc(var(--wheel-width) / 2); }
-.wheel--center { left: 50%; width: calc(var(--wheel-width) * 1.08); animation-delay: 220ms; }
+.wheel--center { left: 50%; width: var(--center-wheel-width); animation-delay: 220ms; }
 .wheel--right { left: calc(100% - var(--wheel-width) / 2); animation-delay: 300ms; }
 .wheel-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .wheel-frame path, .segment-frame path { vector-effect: non-scaling-stroke; transition: stroke 220ms ease; }

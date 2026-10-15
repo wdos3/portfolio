@@ -62,10 +62,13 @@
   transform: scale(var(--experiment-selected-scale));
 }
 
-/* Four quiet ticks bracket the shared selection row; mobile brackets its one
-   visible wheel. They stay fixed while entries travel through the focal plane. */
-.wheel::before, .wheel::after {
-  content: '';
+/* Inner ticks belong to the gap, whose midpoint uses both visible rail edges.
+   Outer ticks and mobile brackets remain attached to their wheel. */
+.wheel-group {
+  --selection-gap-center: calc((var(--wheel-width) * var(--side-focus-end) + 50% + var(--center-wheel-width) * (var(--center-focus-start) - 0.5)) / 2);
+}
+.wheel::before, .wheel::after, .wheel-group::before, .wheel-group::after {
+  content: none;
   position: absolute;
   top: var(--focus-y);
   width: var(--experiment-marker-length);
@@ -75,11 +78,17 @@
   transform: translateY(-50%);
   transition: opacity var(--experiment-emphasis-duration) ease;
 }
-.wheel::before { left: calc(var(--focus-left) - var(--experiment-marker-gap) - var(--experiment-marker-length)); }
-.wheel::after { content: none; left: calc(var(--focus-right) + var(--experiment-marker-gap)); }
-.wheel:last-child::after { content: ''; }
+.wheel--left::before { content: ''; left: calc(var(--focus-left) - var(--experiment-marker-gap) - var(--experiment-marker-length)); }
+.wheel--right::after { content: ''; left: calc(var(--focus-right) + var(--experiment-marker-gap)); }
+.wheel-group::before, .wheel-group::after { content: ''; transform: translate(-50%, -50%); }
+.wheel-group::before { left: var(--selection-gap-center); }
+.wheel-group::after { left: calc(100% - var(--selection-gap-center)); }
+.wheel-layout--expanded .wheel-group::before,
+.wheel-layout--expanded .wheel-group::after,
 .wheel:is(.wheel--expanded, .wheel--parked)::before,
 .wheel:is(.wheel--expanded, .wheel--parked)::after { opacity: 0; }
 @media (max-width: 900px) {
-  .wheel::after { content: ''; }
+  .wheel-group::before, .wheel-group::after { content: none; }
+  .wheel::before { content: ''; left: calc(var(--focus-left) - var(--experiment-marker-gap) - var(--experiment-marker-length)); }
+  .wheel::after { content: ''; left: calc(var(--focus-right) + var(--experiment-marker-gap)); }
 }

@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { PortfolioEntry, PortfolioSection } from '../data/portfolio';
 import { sections } from '../data/portfolio';
 import { Wheel } from './Wheel';
 import { Icon } from './Icon';
 import type { DetailSelection } from '../routing';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { focusBounds, wheelGeometry } from './wheelGeometry';
+
+const markerGeometry = {
+  '--side-focus-end': focusBounds('left').right,
+  '--center-focus-start': focusBounds('center').left,
+  '--focus-y': `${wheelGeometry.focusY / wheelGeometry.height * 100}%`,
+} as CSSProperties;
 
 interface WheelGroupProps {
   onActivate: (section: PortfolioSection, entry: PortfolioEntry) => void;
@@ -56,7 +64,7 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
         Click or tap any labeled entry to open its details. Press Enter or Space to open the focused entry.
         On mobile, swipe horizontally to change sections.
       </p>
-      <div className="wheel-group">
+      <div className="wheel-group" style={markerGeometry}>
         {sections.map((section) => (
           <Wheel key={section.id} section={section} mobileActive={section.id === visibleSection}
             expanded={selection?.section.id === section.id} hasExpansion={!!selection}

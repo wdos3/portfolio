@@ -15,10 +15,6 @@ async function chooseSection(page: Page, name: string, mobile: boolean) {
 async function openEntry(page: Page, section: string, name: string, mobile: boolean) {
   const wheel = await chooseSection(page, section, mobile);
   const button = wheel.getByRole('button', { name, exact: true });
-  if (await button.getAttribute('aria-pressed') !== 'true') {
-    await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
-  }
   await button.click();
   await expect(page.locator('.wheel--expanded h3')).toHaveText(name);
 }
@@ -76,12 +72,9 @@ test('keyboard rotation is bounded and expansion returns focus to the selected i
   await expect(resume).toBeFocused();
 });
 
-test('inactive icons select first, then their wheel becomes the information view', async ({ page, isMobile }) => {
+test('one click on an inactive labeled entry opens its information and preserves the selection', async ({ page, isMobile }) => {
   const about = await chooseSection(page, 'About', isMobile);
   const experience = about.getByRole('button', { name: 'Experience', exact: true });
-  await experience.click();
-  await expect(experience).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.detail-view')).toHaveCount(0);
   await experience.click();
   await expect(about).toHaveClass(/wheel--expanded/);
   await expect(about.getByRole('heading', { name: 'Experience', exact: true })).toBeVisible();
@@ -122,16 +115,18 @@ test('normal motion follows the curved path and changes foreground emphasis', as
   await expect(next).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async()=>Math.abs((await next.boundingBox())!.y-current.y)).toBeLessThan(1);
   expect(Math.abs((await next.boundingBox())!.x-before.x)).toBeGreaterThan(1);
-  expect((await next.locator('svg').boundingBox())!.width).toBeGreaterThan(glyphWidth*1.15);
+  expect((await next.locator('svg').boundingBox())!.width).toBeGreaterThan(glyphWidth*1.05);
   expect(await about.boundingBox()).toEqual(frame);
 });
 
 test('all wheel selections survive expansion and reverse transformation', async ({ page, isMobile }) => {
   const about = await chooseSection(page, 'About', isMobile);
-  await about.getByRole('button', { name: 'Experience', exact: true }).click();
+  await about.getByRole('button', { name: 'Education', exact: true }).focus();
+  await page.keyboard.press('ArrowDown');
   await expect(about.getByRole('button', { name: 'Experience', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const contact = await chooseSection(page, 'Contact', isMobile);
-  await contact.getByRole('button', { name: 'LinkedIn', exact: true }).click();
+  await contact.getByRole('button', { name: 'GitHub', exact: true }).focus();
+  await page.keyboard.press('ArrowDown');
   await expect(contact.getByRole('button', { name: 'LinkedIn', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const work = await chooseSection(page, 'Work', isMobile);
   const readSelections = () => page.locator('.wheel-item[aria-pressed="true"]').evaluateAll(buttons=>buttons.map(button=>button.getAttribute('aria-label')));

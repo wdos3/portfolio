@@ -16,6 +16,7 @@ interface WheelGroupProps {
 export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGroupProps) {
   const [mobileSection, setMobileSection] = useState(selection?.section.id ?? 'work');
   const [retainedSelection, setRetainedSelection] = useState(selection);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const reducedMotion = useReducedMotion();
   const shownSelection = selection ?? retainedSelection;
   const visibleSection = shownSelection?.section.id ?? mobileSection;
@@ -33,7 +34,15 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
   }, [selection, reducedMotion]);
 
   return (
-    <div className={`wheel-layout${selection ? ' wheel-layout--expanded' : ''}`}>
+    <div className={`wheel-layout${selection ? ' wheel-layout--expanded' : ''}`}
+      onPointerDownCapture={() => setHasInteracted(true)}
+      onWheelCapture={(event) => {
+        if (!event.ctrlKey && !event.metaKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)) setHasInteracted(true);
+      }}
+      onKeyDownCapture={(event) => {
+        if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', 'Enter', ' '].includes(event.key)) setHasInteracted(true);
+      }}
+    >
       <div className="mobile-sections" role="group" aria-label="Choose a section" inert={!!selection}>
         {sections.map((section) => (
           <button key={section.id} aria-label={section.title} aria-pressed={section.id === visibleSection} onClick={() => setMobileSection(section.id)}>
@@ -44,7 +53,7 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
       </div>
       <p id="wheel-instructions" className="sr-only">
         Scroll or drag vertically to select. Use up and down arrow keys, Home, or End.
-        Click an icon to bring it forward, then click the selected icon or press Enter to open details.
+        Click or tap any labeled entry to open its details. Press Enter or Space to open the focused entry.
         On mobile, swipe horizontally to change sections.
       </p>
       <div className="wheel-group">
@@ -63,10 +72,9 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
           />
         ))}
       </div>
-      {notFound ? <p className="interaction-hint" role="status">This entry is unavailable. <a href="#">Return to wheels</a></p> : <p className="interaction-hint" aria-hidden="true">
-        <span className="desktop-hint">Scroll to explore</span>
-        <span className="mobile-hint">Swipe to explore</span>
-        <span className="hint-separator">·</span> Open the focused icon
+      {notFound ? <p className="interaction-hint" role="status">This entry is unavailable. <a href="#">Return to wheels</a></p> : <p className={`interaction-hint${hasInteracted ? ' interaction-hint--dismissed' : ''}`} aria-hidden="true">
+        <span className="desktop-hint">Scroll or ↑ ↓ to rotate<span className="hint-separator">·</span>Click or Enter to explore</span>
+        <span className="mobile-hint">Swipe to rotate<span className="hint-separator">·</span>Tap to explore</span>
       </p>}
     </div>
   );

@@ -21,41 +21,68 @@ interface WheelProps {
 
 // Coordinates share a 360 × 640 design space with the SVG rails.
 const itemAngle = 0.48;
-const rotationRadius = 235;
-const entriesTop = 190;
-// Both rail variants enclose their usable face from y=80. The fixed topic
-// occupies the middle of the space above the rotating entries.
-const headingY = (80 + entriesTop) / 2;
+const rotationRadius = 205;
+const surfaceTop = 70;
+const headingY = surfaceTop + 80;
+const entriesTop = headingY + 40;
+
+interface RailCurve {
+  edge: number;
+  control: number;
+  top: number;
+  bottom: number;
+}
+
+const centerRail: RailCurve = { edge: 66, control: 25, top: surfaceTop, bottom: 600 };
+const centerEnd: RailCurve = { ...centerRail, edge: 360 - centerRail.edge, control: 360 - centerRail.control };
+const centerBack: RailCurve = { ...centerRail, edge: 50, control: 5 };
+const outerRail: RailCurve = { edge: 125, control: 20, top: 0, bottom: 640 };
+const innerRail: RailCurve = { edge: 344, control: 320, top: surfaceTop, bottom: 600 };
+
+function railPath({ edge, control, top, bottom }: RailCurve) {
+  const third = (bottom - top) / 3;
+  return `M ${edge} ${top} C ${control} ${top + third} ${control} ${bottom - third} ${edge} ${bottom}`;
+}
+
+function railX(rail: RailCurve, y: number) {
+  // Equally spaced vertical control points make y linear in t. This evaluates
+  // the actual rail, so separators meet its stroke rather than an approximation.
+  const t = Math.max(0, Math.min(1, (y - rail.top) / (rail.bottom - rail.top)));
+  return rail.edge + 3 * (rail.control - rail.edge) * t * (1 - t);
+}
 
 function rowGeometry(y: number, variant: WheelVariant) {
   if (variant === 'center') {
-    const inset = 36 + 19 * ((y - 338) / 260) ** 2;
+    const inset = railX(centerRail, y);
     return { left: inset, right: 360 - inset, leftY: y, rightY: y, skew: 0 };
   }
-  const left = 40 + 105 * ((y - 320) / 320) ** 2;
-  const right = 325 + 35 * ((y - 320) / 260) ** 2;
-  const tilt = (y - 320) * 0.12;
+  const tilt = (y - 330) * 0.07;
+  const leftY = y + tilt;
+  const rightY = y - tilt;
+  const left = railX(outerRail, leftY);
+  const right = railX(innerRail, rightY);
+  const skew = Math.atan2(rightY - leftY, right - left) * 180 / Math.PI;
   if (variant === 'right') {
-    return { left: 360 - right, right: 360 - left, leftY: y - tilt, rightY: y + tilt, skew: (y - 320) * 0.036 };
+    return { left: 360 - right, right: 360 - left, leftY: rightY, rightY: leftY, skew: -skew };
   }
-  return { left, right, leftY: y + tilt, rightY: y - tilt, skew: (320 - y) * 0.036 };
+  return { left, right, leftY, rightY, skew };
 }
 
 function RailFrame({ variant }: { variant: WheelVariant }) {
   if (variant === 'center') {
     return (
       <g>
-        <path className="rail-back" d="M 50 82 C 5 118 5 554 50 595 M 310 82 C 355 118 355 554 310 595" />
-        <path className="rail-front rail-start" d="M 66 80 C 25 118 25 554 66 595" />
-        <path className="rail-front rail-end" d="M 294 80 C 335 118 335 554 294 595" />
+        <path className="rail-back" d={`${railPath(centerBack)} ${railPath({ ...centerBack, edge: 360 - centerBack.edge, control: 360 - centerBack.control })}`} />
+        <path className="rail-front rail-start" d={railPath(centerRail)} />
+        <path className="rail-front rail-end" d={railPath(centerEnd)} />
       </g>
     );
   }
   return (
     <g transform={variant === 'right' ? 'translate(360 0) scale(-1 1)' : undefined}>
-      <path className="rail-back" d="M 145 0 C -48 94 -48 546 145 640" />
-      <path className="rail-front rail-start" d="M 145 0 C 5 80 5 560 145 640" />
-      <path className="rail-inner rail-end" d="M 360 82 C 314 140 314 500 360 558" />
+      <path className="rail-back" d={railPath({ ...outerRail, control: -18 })} />
+      <path className="rail-front rail-start" d={railPath(outerRail)} />
+      <path className="rail-inner rail-end" d={railPath(innerRail)} />
     </g>
   );
 }
@@ -75,7 +102,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
     }
     hadDetail.current = !!detail;
   }, [detail, ref, selected]);
-  const rowY = (offset: number) => 330 + rotationRadius * Math.sin(offset * itemAngle);
+  const rowY = (offset: number) => 310 + rotationRadius * Math.sin(offset * itemAngle);
   const heading = rowGeometry(headingY, section.variant);
   const wheelStyle = {
     '--heading-x': `${(heading.left + heading.right) / 7.2}%`,
@@ -128,25 +155,23 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
           const angle = offset * itemAngle;
           const depth = Math.max(0, Math.cos(angle));
           const edgeFade = Math.max(0, Math.min(1, (1.4 - Math.abs(angle)) / 0.25));
-          const headingClearance = Math.max(0, Math.min(1, (y - entriesTop) / 48));
-          const bend = section.variant === 'left' ? 52 : section.variant === 'right' ? -52 : 0;
+          const headingClearance = Math.max(0, Math.min(1, (y - entriesTop) / 36));
+          const bend = section.variant === 'left' ? 24 : section.variant === 'right' ? -24 : 0;
           const x = (row.left + row.right) / 2 + bend * (1 - depth);
           const visible = Math.abs(angle) < 1.4;
           const style = {
             '--item-x': x / 3.6,
             '--item-y': y / 6.4,
+            '--item-width': (row.right - row.left - 32) / 3.6,
             '--icon-skew': `${row.skew}deg`,
-            '--icon-tilt': `${-angle * 24}deg`,
-            '--icon-scale': 0.52 + 0.48 * depth ** 4,
-            '--icon-opacity': (0.36 + 0.64 * depth ** 7) * edgeFade * headingClearance,
+            '--icon-tilt': `${-angle * 12}deg`,
+            '--icon-scale': 0.78 + 0.22 * depth ** 4,
+            '--entry-opacity': (0.5 + 0.5 * depth ** 4) * edgeFade * headingClearance,
             visibility: visible ? 'visible' : 'hidden',
           } as CSSProperties;
           function activate() {
             if (!canActivate()) return;
-            if (!active) {
-              select(index);
-              return;
-            }
+            select(index);
             onActivate(section, entry);
           }
           return (

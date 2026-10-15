@@ -34,9 +34,9 @@ Edit **`src/data/portfolio.ts`**:
 
 The initial profile copy and project descriptions/technologies are explicitly labeled examples, not claims about the owner. No personal contact information is prefilled.
 
-Each entry has an `icon` key corresponding to the thin SVG icons in `src/components/Icon.tsx`. Projects may omit it to use the folder icon. Names are retained for screen readers, hover/focus labels, and detail headings. No item numbering is displayed. Software Projects starts in front of WORK; the other wheels start with their second entry when available. Small screens initially show WORK.
+Each entry has an `icon` key corresponding to the thin SVG icons in `src/components/Icon.tsx`. Projects may omit it to use the folder icon. Entry names are always displayed alongside the icons and also label the controls for screen readers. The foreground entry is brighter and uses a heavier label; inactive labels retain their font size instead of being compressed at the edges. No item numbering is displayed. Software Projects starts in front of WORK; the other wheels start with their second entry when available. Small screens initially show WORK and provide labeled section controls.
 
-Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. ABOUT, WORK, and CONTACT are stationary topics within the upper cylinder face; they never occupy a rotating slot. Their shared vertical anchor, surface centering, and perspective use the same geometry as the entries. A reserved upper region keeps rotating icons and separators clear of the topics. Only the rails morph during expansion, so row separators cannot lag behind a drag. The retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
+Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. ABOUT, WORK, and CONTACT are stationary topics within the upper cylinder face; they never occupy a rotating slot. Their shared vertical anchor and surface centering use the same geometry as the entries. Rail control points also determine separator endpoints, so dividers terminate on the outlines. A reserved upper region keeps rotating entries clear of the topics. Only the rails morph during expansion, so row separators cannot lag behind a drag. The retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
 
 ## Direct links
 
@@ -53,11 +53,12 @@ Every project provides a Copy project link action. Reloading, opening a link dir
 ## Controls
 
 - Scroll over one wheel or drag vertically: select and snap, bounded at both ends. Dragging follows the pointer directly, stops any settling animation when grabbed, and snaps on release. Reversing at an end responds immediately.
-- Click an inactive icon: bring it to the foreground. Click the selected icon: expand that wheel. Names appear on hover or keyboard focus.
+- Click or tap any labeled entry: select it and expand its wheel in one action.
 - Tab: move between wheels. Arrow Up/Down, Page Up/Down, Home/End: select within the focused wheel. Enter/Space: open.
 - Escape or Back to wheels: reverse the expansion and restore focus and wheel selections. The scrollable details area is keyboard focusable, and Tab reaches links and actions normally.
 - Mobile: use the three section controls or swipe horizontally. Each gesture locks to its initial direction so diagonal movements cannot rotate a wheel and change sections together. Switching sections preserves each selection.
 - System reduced-motion preferences disable entrance transitions and smooth interpolation.
+- The visible interaction hint disappears after the first rotation, press, or activation in the current visit. Keyboard and screen-reader instructions remain available.
 
 ## Validate
 

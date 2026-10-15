@@ -16,6 +16,11 @@ const shapes: Record<IconName, ReactNode> = {
   automation: <><path d="m7 4 2 3-2 3M13 10h4M3 14h18M5 22l3-4m11 4-3-4" /><rect x="2" y="1" width="20" height="17" rx="1" /></>,
   folder: <path d="M2 6V4h7l2 3h11v13H2V6Z" />,
   close: <path d="m5 5 14 14M19 5 5 19" />,
+  research: <><circle cx="12" cy="12" r="3" /><circle cx="4" cy="5" r="2" /><circle cx="20" cy="5" r="2" /><circle cx="4" cy="20" r="2" /><circle cx="20" cy="20" r="2" /><path d="m6 7 4 3m4 0 4-3M6 18l4-4m4 0 4 4" /></>,
+  experiment: <><path d="M8 2h8m-6 0v7L3 21h18L14 9V2M7 15h10" /><circle cx="11" cy="18" r=".5" fill="currentColor" /></>,
+  download: <><path d="M12 2v13m-5-5 5 5 5-5M4 17v5h16v-5" /></>,
+  back: <path d="m10 5-7 7 7 7M3 12h18" />,
+  link: <><path d="m10 7 2-2a5 5 0 0 1 7 7l-2 2m-3 3-2 2a5 5 0 0 1-7-7l2-2m1 6 8-8" /></>,
 };
 
 export function Icon({ name, className }: { name: IconName; className?: string }) {

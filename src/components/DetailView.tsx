@@ -1,155 +1,118 @@
-import { useEffect, useRef, useState } from 'react';
-import type { PortfolioEntry, PortfolioSection, ContactEntry } from '../data/portfolio';
+import { useEffect, useRef } from 'react';
+import { portfolio } from '../data/portfolio';
+import type { ContactEntry, ProjectEntry } from '../data/portfolio';
+import { entryHref } from '../routing';
+import type { DetailSelection } from '../routing';
+import { CopyButton } from './CopyButton';
 import { Icon } from './Icon';
 
-export interface DetailSelection {
-  section: PortfolioSection;
-  entry: PortfolioEntry;
-}
-
 function ContactContent({ entry }: { entry: ContactEntry }) {
-  const [copyStatus, setCopyStatus] = useState('Copy address');
   if (!entry.value) {
-    return (
-      <div className="content-block">
-        <p className="contact-value">{entry.name === 'Location' ? 'City, country' : 'Not added yet.'}</p>
-        <p>{entry.name === 'Location' ? 'Location details will appear here when available.' : `A ${entry.name === 'Email' ? 'contact address' : `${entry.name} profile`} will appear here when available.`}</p>
-      </div>
-    );
+    return <div className="content-block"><p className="contact-value">Not added yet.</p><p>{entry.name} details will appear here when available.</p></div>;
   }
   return (
     <div className="content-block">
       <p className="contact-value">{entry.value}</p>
-      {entry.type === 'email' && (
-        <div className="detail-actions">
-          <a href={`mailto:${entry.value}`}>Write an email <span aria-hidden="true">↗</span></a>
-          <button onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(entry.value!);
-              setCopyStatus('Copied');
-            } catch {
-              setCopyStatus('Unable to copy. Select the address above.');
-            }
-          }}>{copyStatus}</button>
-          <span className="sr-only" role="status">{copyStatus === 'Copy address' ? '' : copyStatus}</span>
-        </div>
-      )}
+      {entry.type === 'email' && <div className="detail-actions">
+        <a href={`mailto:${entry.value}`}>Write an email <span aria-hidden="true">↗</span></a>
+        <CopyButton value={entry.value} label="Copy address" />
+      </div>}
       {entry.type === 'external' && <a className="text-link" href={entry.value} target="_blank" rel="noopener noreferrer">Visit {entry.name} <span aria-hidden="true">↗</span></a>}
     </div>
   );
 }
 
-export function DetailView({ selection, onClose }: { selection: DetailSelection; onClose: () => void }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
-  const closeAnimation = useRef<Animation | null>(null);
-  const [closing, setClosing] = useState(false);
-  const { entry, section } = selection;
+function ProjectContent({ project }: { project: ProjectEntry }) {
+  return (
+    <>
+      {project.placeholder && <p className="draft-label">Sample project · editable draft</p>}
+      <p className="detail-introduction">{project.description}</p>
+      <dl className="project-facts">
+        <div><dt>Technologies</dt><dd>{project.technologies.join(' · ') || 'Not added yet'}</dd></div>
+        <div><dt>Development</dt><dd>{project.status}</dd></div>
+      </dl>
+      <div className="content-blocks project-story">
+        <section className="content-block"><h4>Problem</h4><p>{project.problem ?? 'The problem being solved has not been added yet.'}</p></section>
+        <section className="content-block"><h4>My contributions</h4>
+          {project.contributions.length ? <ul>{project.contributions.map((item) => <li key={item}>{item}</li>)}</ul> : <p>Contributions have not been added yet.</p>}
+        </section>
+        <section className="content-block"><h4>Challenges</h4>
+          {project.challenges.length ? <ul>{project.challenges.map((item) => <li key={item}>{item}</li>)}</ul> : <p>Technical challenges have not been added yet.</p>}
+        </section>
+        <section className="content-block"><h4>Results</h4><p>{project.results ?? 'No results have been added.'}</p></section>
+      </div>
+      {project.extendedDescription && <p className="extended-description">{project.extendedDescription}</p>}
+      <div className="detail-actions">
+        {project.repositoryUrl && <a href={project.repositoryUrl} target="_blank" rel="noopener noreferrer">Source code <span aria-hidden="true">↗</span></a>}
+        {project.demoUrl && <a href={project.demoUrl} target="_blank" rel="noopener noreferrer">Live demo <span aria-hidden="true">↗</span></a>}
+        <CopyButton value={new URL(entryHref('work', project.category, project.id), window.location.href).href} label="Copy project link" />
+      </div>
+    </>
+  );
+}
+
+export function DetailView({ selection, active, onClose }: { selection: DetailSelection; active: boolean; onClose: () => void }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { entry, project, section } = selection;
+  const name = project?.name ?? entry.name;
 
   useEffect(() => {
-    const dialog = dialogRef.current!;
-    if (!openerRef.current) {
-      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    }
-    dialog.showModal();
-    return () => {
-      closeAnimation.current?.cancel();
-      openerRef.current?.focus({ preventScroll: true });
-    };
-  }, []);
-
-  function requestClose() {
-    const dialog = dialogRef.current!;
-    if (closing) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      dialog.close();
-      return;
-    }
-    setClosing(true);
-    const current = getComputedStyle(dialog);
-    const animation = dialog.animate(
-      [{ opacity: current.opacity, transform: current.transform }, { opacity: 0, transform: 'translate3d(0, 8px, 0) scale(0.985)' }],
-      { duration: 180, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' },
-    );
-    closeAnimation.current = animation;
-    void animation.finished.then(
-      () => dialog.close(),
-      (error: unknown) => {
-        // Unmounting cancels an in-progress animation; other failures are unexpected.
-        if (!(error instanceof DOMException && error.name === 'AbortError')) throw error;
-      },
-    );
-  }
+    if (!active) return;
+    scrollRef.current!.scrollTop = 0;
+    headingRef.current?.focus({ preventScroll: true });
+  }, [active, entry.id, project?.id]);
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={`detail-view${closing ? ' detail-view--closing' : ''}`}
-      aria-labelledby="detail-title"
-      onClose={onClose}
-      onCancel={(event) => {
+    <div className="detail-view" role="region" aria-labelledby={`${section.id}-detail-title`} inert={!active} onKeyDown={(event) => {
+      if (event.key === 'Escape') {
         event.preventDefault();
-        requestClose();
-      }}
-      onKeyDown={(event) => {
-        if (event.key !== 'Tab') return;
-        const controls = event.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
-        const first = controls[0];
-        const last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }}
-    >
-      <div className="detail-topline">
-        <p>{section.title}</p>
-        <button className="close-detail" onClick={requestClose} aria-label="Close details" autoFocus>
-          <Icon name="close" />
-        </button>
-      </div>
-      <div className="detail-body">
-        <div className="detail-heading">
-          <Icon name={entry.icon ?? 'folder'} />
-          <h2 id="detail-title">{entry.name}</h2>
-        </div>
-        {entry.kind !== 'contact' && entry.placeholder && <p className="draft-label">{entry.kind === 'project' ? 'Sample project' : 'Profile draft'}</p>}
-        {entry.kind === 'about' && (
-          <>
-            <p className="detail-introduction">{entry.introduction}</p>
-            <div className="content-blocks">
-              {entry.blocks.map((block) => (
-                <section className="content-block" key={block.title}>
-                  <h3>{block.title}</h3>
+        onClose();
+      }
+    }}>
+      <button className="detail-return" onClick={onClose} aria-label="Return to wheels"><Icon name="back" /><span>Back to wheels</span></button>
+      <div className="detail-scroll" ref={scrollRef} role="group" aria-label="Scrollable details" tabIndex={0}>
+        <div className="detail-body" key={project?.id ?? entry.id}>
+          {project && <a className="collection-return" href={entryHref(section.id, entry.id)}><Icon name="back" />{entry.name}</a>}
+          <div className="detail-heading">
+            <Icon name={project ? project.icon ?? 'folder' : entry.icon} />
+            <h3 id={`${section.id}-detail-title`} ref={headingRef} tabIndex={-1}>{name}</h3>
+          </div>
+          {project ? <ProjectContent project={project} /> : <>
+            {entry.kind === 'about' && <>
+              {entry.placeholder && <p className="draft-label">Profile draft</p>}
+              <p className="detail-introduction">{entry.introduction}</p>
+              <div className="content-blocks">
+                {entry.blocks.map((block) => <section className="content-block" key={block.title}>
+                  <h4>{block.title}</h4>
                   {block.subtitle && <p className="block-subtitle">{block.subtitle}</p>}
                   {block.text && <p>{block.text}</p>}
                   {block.items && <ul className="inline-list">{block.items.map((item) => <li key={item}>{item}</li>)}</ul>}
-                </section>
-              ))}
-            </div>
-          </>
-        )}
-        {entry.kind === 'contact' && <ContactContent entry={entry} />}
-        {entry.kind === 'project' && (
-          <>
-            <p className="detail-introduction">{entry.description}</p>
-            <dl className="project-facts">
-              <div><dt>Built with</dt><dd>{entry.technologies.join(' · ') || 'To be added'}</dd></div>
-              <div><dt>Status</dt><dd>{entry.status}</dd></div>
-            </dl>
-            {entry.extendedDescription && <p className="extended-description">{entry.extendedDescription}</p>}
-            {(entry.repositoryUrl || entry.demoUrl) && (
-              <div className="detail-actions">
-                {entry.repositoryUrl && <a href={entry.repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository <span aria-hidden="true">↗</span></a>}
-                {entry.demoUrl && <a href={entry.demoUrl} target="_blank" rel="noopener noreferrer">Live demo <span aria-hidden="true">↗</span></a>}
+                </section>)}
               </div>
-            )}
-          </>
-        )}
+            </>}
+            {entry.kind === 'contact' && <ContactContent entry={entry} />}
+            {entry.kind === 'resume' && <>
+              <p className="detail-introduction">{entry.description}</p>
+              {entry.url ? <div className="detail-actions"><a href={entry.url} download={entry.fileName}>Download CV <Icon name="download" /></a></div>
+                : <div className="content-block"><p>CV not added yet. A download will be available when a CV is provided.</p></div>}
+            </>}
+            {entry.kind === 'collection' && <>
+              <p className="detail-introduction">{entry.description}</p>
+              <ul className="work-list">
+                {portfolio.projects.filter((item) => item.category === entry.id).map((item) => <li key={item.id}>
+                  <a href={entryHref('work', entry.id, item.id)}>
+                    <Icon name={item.icon ?? 'folder'} />
+                    <span><strong>{item.name}</strong><span className="work-summary">{item.description}</span></span>
+                    <span className="work-arrow" aria-hidden="true">↗</span>
+                  </a>
+                </li>)}
+              </ul>
+              {!portfolio.projects.some((item) => item.category === entry.id) && <p className="empty-content">No entries have been added yet.</p>}
+            </>}
+          </>}
+        </div>
       </div>
-    </dialog>
+    </div>
   );
 }

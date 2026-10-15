@@ -1,26 +1,20 @@
-import { useState } from 'react';
 import { portfolio } from './data/portfolio';
 import { WheelGroup } from './components/WheelGroup';
-import { DetailView } from './components/DetailView';
-import type { DetailSelection } from './components/DetailView';
+import { entryHref, usePortfolioRoute } from './routing';
 
 export default function App() {
-  const [selection, setSelection] = useState<DetailSelection | null>(null);
+  const { selection, notFound } = usePortfolioRoute();
 
   return (
-    <main className={`portfolio${selection ? ' portfolio--detail-open' : ''}`}>
+    <main className="portfolio">
       <div className="identity">
         <h1>{portfolio.name}</h1>
         <p>{portfolio.subtitle}</p>
       </div>
-      <WheelGroup onActivate={(section, entry) => {
-        if (entry.kind === 'contact' && entry.type === 'external' && entry.value) {
-          window.open(entry.value, '_blank', 'noopener,noreferrer');
-          return;
-        }
-        setSelection({ section, entry });
-      }} />
-      {selection && <DetailView selection={selection} onClose={() => setSelection(null)} />}
+      <WheelGroup selection={selection} notFound={notFound}
+        onClose={() => { window.location.hash = ''; }}
+        onActivate={(section, entry) => { window.location.hash = entryHref(section.id, entry.id); }}
+      />
     </main>
   );
 }

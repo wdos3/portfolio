@@ -1,4 +1,5 @@
-export type IconName = 'user' | 'education' | 'experience' | 'code' | 'mail' | 'github' | 'linkedin' | 'location' | 'chess' | 'instruction' | 'audio' | 'automation' | 'folder' | 'close';
+export type IconName = 'user' | 'education' | 'experience' | 'code' | 'mail' | 'github' | 'linkedin' | 'location' | 'chess' | 'instruction' | 'audio' | 'automation' | 'folder' | 'close' | 'research' | 'experiment' | 'download' | 'back' | 'link';
+export type WorkCategory = 'software' | 'research' | 'experiments';
 
 export interface ContentBlock {
   title: string;
@@ -31,7 +32,12 @@ export interface ProjectEntry {
   kind: 'project';
   name: string;
   icon?: IconName;
+  category: WorkCategory;
   description: string;
+  problem: string | null;
+  contributions: readonly string[];
+  challenges: readonly string[];
+  results: string | null;
   technologies: readonly string[];
   status: string;
   repositoryUrl: string | null;
@@ -40,8 +46,26 @@ export interface ProjectEntry {
   placeholder: boolean;
 }
 
-export type PortfolioEntry = AboutEntry | ContactEntry | ProjectEntry;
-export type SectionId = 'about' | 'contact' | 'projects';
+export interface ResumeEntry {
+  id: string;
+  kind: 'resume';
+  name: string;
+  icon: IconName;
+  description: string;
+  url: string | null;
+  fileName: string;
+}
+
+export interface WorkEntry {
+  id: WorkCategory;
+  kind: 'collection';
+  name: string;
+  icon: IconName;
+  description: string;
+}
+
+export type PortfolioEntry = AboutEntry | ContactEntry | ResumeEntry | WorkEntry;
+export type SectionId = 'about' | 'work' | 'contact';
 export type WheelVariant = 'left' | 'center' | 'right';
 
 export interface PortfolioSection {
@@ -56,12 +80,12 @@ export interface PortfolioSection {
 // null means unavailable: no fabricated addresses or destination links are rendered.
 export const portfolio = {
   name: 'LE TRI LAM',
-  subtitle: 'Developer · AI / ML · Graduate Student',
+  subtitle: 'Software Development · Machine Learning',
   about: [
     {
-      id: 'about-me',
+      id: 'profile',
       kind: 'about',
-      name: 'About Me',
+      name: 'Profile',
       icon: 'user',
       placeholder: true,
       introduction: 'Exploring the space between thoughtful software and intelligent systems.',
@@ -127,7 +151,16 @@ export const portfolio = {
         { title: 'Areas · examples', items: ['Machine learning', 'Data visualization', 'Audio experiments'] },
       ],
     },
-  ] satisfies AboutEntry[],
+    {
+      id: 'resume',
+      kind: 'resume',
+      name: 'Résumé / CV',
+      icon: 'download',
+      description: 'An overview of education, experience, and selected work.',
+      url: null,
+      fileName: 'Le-Tri-Lam-CV.pdf',
+    },
+  ] satisfies (AboutEntry | ResumeEntry)[],
   contact: [
     { id: 'email', kind: 'contact', name: 'Email', icon: 'mail', type: 'email', value: null },
     { id: 'github', kind: 'contact', name: 'GitHub', icon: 'github', type: 'external', value: null },
@@ -140,8 +173,13 @@ export const portfolio = {
       kind: 'project',
       name: 'Chess Web App',
       icon: 'chess',
+      category: 'software',
       placeholder: true,
       description: 'An interactive space to play, study, and explore chess on the web.',
+      problem: null,
+      contributions: [],
+      challenges: [],
+      results: null,
       technologies: ['TypeScript', 'React'],
       status: 'Sample project',
       repositoryUrl: null,
@@ -153,8 +191,13 @@ export const portfolio = {
       kind: 'project',
       name: 'Visual Instruction Tool',
       icon: 'instruction',
+      category: 'software',
       placeholder: true,
       description: 'Exploring how visual interfaces can make complex instructions easier to understand.',
+      problem: null,
+      contributions: [],
+      challenges: [],
+      results: null,
       technologies: ['Python', 'TypeScript', 'React'],
       status: 'Sample project',
       repositoryUrl: null,
@@ -166,8 +209,13 @@ export const portfolio = {
       kind: 'project',
       name: 'Audio ML Experiments',
       icon: 'audio',
+      category: 'experiments',
       placeholder: true,
       description: 'A collection of experiments at the intersection of sound and machine learning.',
+      problem: null,
+      contributions: [],
+      challenges: [],
+      results: null,
       technologies: ['Python', 'PyTorch', 'Audio processing'],
       status: 'Sample project',
       repositoryUrl: null,
@@ -179,8 +227,13 @@ export const portfolio = {
       kind: 'project',
       name: 'Automation Tools',
       icon: 'automation',
+      category: 'software',
       placeholder: true,
       description: 'Small, focused tools that turn repetitive tasks into simpler workflows.',
+      problem: null,
+      contributions: [],
+      challenges: [],
+      results: null,
       technologies: ['Python', 'JavaScript'],
       status: 'Sample project',
       repositoryUrl: null,
@@ -188,10 +241,15 @@ export const portfolio = {
       extendedDescription: 'Introduce your tools, which workflows they support, and how they are used. Add individual repository links when ready.',
     },
   ] satisfies ProjectEntry[],
+  work: [
+    { id: 'software', kind: 'collection', name: 'Software Projects', icon: 'code', description: 'Applications, tools, and systems. Explore the problem, the process, and the work behind each project.' },
+    { id: 'research', kind: 'collection', name: 'AI / ML Research', icon: 'research', description: 'Research questions, methods, and evidence. Research entries will appear here when added.' },
+    { id: 'experiments', kind: 'collection', name: 'Experiments', icon: 'experiment', description: 'Focused explorations in code and machine learning, with space for methods, observations, and open questions.' },
+  ] satisfies WorkEntry[],
 };
 
 export const sections: readonly PortfolioSection[] = [
   { id: 'about', title: 'About', icon: 'user', variant: 'left', entries: portfolio.about },
-  { id: 'contact', title: 'Contact', icon: 'mail', variant: 'center', entries: portfolio.contact },
-  { id: 'projects', title: 'Projects', icon: 'folder', variant: 'right', entries: portfolio.projects },
+  { id: 'work', title: 'Work', icon: 'folder', variant: 'center', entries: portfolio.work },
+  { id: 'contact', title: 'Contact', icon: 'mail', variant: 'right', entries: portfolio.contact },
 ];

@@ -1,12 +1,21 @@
+import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { PortfolioEntry, PortfolioSection, WheelVariant } from '../data/portfolio';
 import { useWheel } from '../hooks/useWheel';
 import { Icon } from './Icon';
+import { DetailView } from './DetailView';
+import type { DetailSelection } from '../routing';
 
 interface WheelProps {
   section: PortfolioSection;
   mobileActive: boolean;
+  expanded: boolean;
+  hasExpansion: boolean;
+  parkSide?: 'left' | 'right';
+  detail: DetailSelection | null;
   onActivate: (section: PortfolioSection, entry: PortfolioEntry) => void;
+  onClose: () => void;
+  onCollapseComplete: () => void;
 }
 
 // Coordinates share a 360 × 640 design space with the SVG rails.
@@ -29,21 +38,33 @@ function RailFrame({ variant }: { variant: WheelVariant }) {
     return (
       <g>
         <path className="rail-back" d="M 50 82 C 5 118 5 554 50 595 M 310 82 C 355 118 355 554 310 595" />
-        <path className="rail-front" d="M 66 80 C 25 118 25 554 66 595 M 294 80 C 335 118 335 554 294 595" />
+        <path className="rail-front rail-start" d="M 66 80 C 25 118 25 554 66 595" />
+        <path className="rail-front rail-end" d="M 294 80 C 335 118 335 554 294 595" />
       </g>
     );
   }
   return (
     <g transform={variant === 'right' ? 'translate(360 0) scale(-1 1)' : undefined}>
       <path className="rail-back" d="M 145 0 C -48 94 -48 546 145 640" />
-      <path className="rail-front" d="M 145 0 C 5 80 5 560 145 640" />
-      <path className="rail-inner" d="M 360 82 C 314 140 314 500 360 558" />
+      <path className="rail-front rail-start" d="M 145 0 C 5 80 5 560 145 640" />
+      <path className="rail-inner rail-end" d="M 360 82 C 314 140 314 500 360 558" />
     </g>
   );
 }
 
-export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
-  const { ref, position, selected, select, canActivate, isTap, consumeClick, handlers } = useWheel(section.entries.length);
+export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide, detail, onActivate, onClose, onCollapseComplete }: WheelProps) {
+  const { ref, position, selected, select, canActivate, isTap, consumeClick, handlers } = useWheel(section.entries.length, {
+    enabled: !hasExpansion,
+    initialIndex: section.id === 'work' ? 0 : 1,
+    requestedIndex: expanded && detail ? section.entries.findIndex((entry) => entry.id === detail.entry.id) : undefined,
+  });
+  const hadDetail = useRef(!!detail);
+  useEffect(() => {
+    if (hadDetail.current && !detail) {
+      ref.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus({ preventScroll: true });
+    }
+    hadDetail.current = !!detail;
+  }, [detail, ref, selected]);
   const rowY = (offset: number) => 330 + 235 * Math.sin(offset * 0.48);
   const titleLine = rowGeometry(section.variant === 'center' ? 98 : 79, section.variant);
   const lastOffset = section.entries.length - position - 0.5;
@@ -54,11 +75,16 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
   return (
     <section
       ref={ref}
-      className={`wheel wheel--${section.variant}`}
+      className={`wheel wheel--${section.variant}${expanded ? ' wheel--expanded' : ''}${parkSide ? ` wheel--parked wheel--parked-${parkSide}` : ''}`}
+      data-section={section.id}
       data-mobile-active={mobileActive}
+      inert={!!parkSide}
       aria-labelledby={`${section.id}-title`}
       aria-describedby="wheel-instructions"
-      {...handlers}
+      {...(!hasExpansion && !detail ? handlers : {})}
+      onTransitionEnd={(event) => {
+        if (event.target === event.currentTarget && event.propertyName === 'width' && !expanded && detail) onCollapseComplete();
+      }}
     >
       <svg className="wheel-frame" viewBox="0 0 360 640" preserveAspectRatio="none" fill="none" aria-hidden="true">
         <RailFrame variant={section.variant} />
@@ -73,7 +99,7 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
       </svg>
 
       <h2 id={`${section.id}-title`} className="wheel-title">{section.title}</h2>
-      <div className="wheel-surface">
+      <div className="wheel-surface" inert={!!detail} aria-hidden={!!detail}>
         {section.entries.map((entry, index) => {
           const offset = index - position;
           const y = rowY(offset);
@@ -111,7 +137,7 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
               data-selected={active}
               aria-label={entry.name}
               aria-pressed={active}
-              aria-haspopup={entry.kind === 'contact' && entry.type === 'external' && entry.value ? undefined : 'dialog'}
+              aria-expanded={expanded && active}
               tabIndex={active ? 0 : -1}
               onPointerUp={(event) => {
                 if (event.pointerType === 'touch' && isTap(event)) {
@@ -123,12 +149,13 @@ export function Wheel({ section, mobileActive, onActivate }: WheelProps) {
               }}
               onClick={activate}
             >
-              <Icon className="wheel-icon" name={entry.icon ?? 'folder'} />
+              <Icon className="wheel-icon" name={entry.icon} />
               <span className="wheel-label" aria-hidden="true">{entry.name}</span>
             </button>
           );
         })}
       </div>
+      {detail && <DetailView selection={detail} active={expanded} onClose={onClose} />}
       {section.entries.length === 0 && <p className="wheel-empty">More to come.</p>}
     </section>
   );

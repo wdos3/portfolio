@@ -1,15 +1,9 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
+import { useReducedMotion } from './useReducedMotion';
 
-const motionQuery = '(prefers-reduced-motion: reduce)';
-const subscribeToMotion = (notify: () => void) => {
-  const query = window.matchMedia(motionQuery);
-  query.addEventListener('change', notify);
-  return () => query.removeEventListener('change', notify);
-};
-
-export function useWheel(count: number) {
-  const initialPosition = Math.min(1, Math.max(0, count - 1));
+export function useWheel(count: number, { enabled = true, requestedIndex, initialIndex = 1 }: { enabled?: boolean; requestedIndex?: number; initialIndex?: number } = {}) {
+  const initialPosition = Math.min(requestedIndex ?? initialIndex, Math.max(0, count - 1));
   const ref = useRef<HTMLElement>(null);
   const targetRef = useRef(initialPosition);
   const positionRef = useRef(initialPosition);
@@ -19,11 +13,16 @@ export function useWheel(count: number) {
   const keyboardFocusRequested = useRef(false);
   const [target, setTarget] = useState(initialPosition);
   const [position, setPosition] = useState(initialPosition);
-  const reducedMotion = useSyncExternalStore(
-    subscribeToMotion,
-    () => window.matchMedia(motionQuery).matches,
-    () => false,
-  );
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (requestedIndex === undefined) return;
+    const frame = requestAnimationFrame(() => {
+      targetRef.current = requestedIndex;
+      setTarget(requestedIndex);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [requestedIndex]);
 
   function moveTo(value: number) {
     const next = Math.max(0, Math.min(Math.max(0, count - 1), value));
@@ -59,7 +58,7 @@ export function useWheel(count: number) {
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element || !enabled) return;
 
     function onWheel(event: WheelEvent) {
       if (event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
@@ -81,7 +80,7 @@ export function useWheel(count: number) {
       element.removeEventListener('wheel', onWheel);
       clearTimeout(snapTimer.current);
     };
-  }, [count]);
+  }, [count, enabled]);
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     suppressClick.current = false;

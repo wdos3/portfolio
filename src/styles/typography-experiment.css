@@ -1,0 +1,83 @@
+/* Remove this file's import in main.tsx to restore the previous visual hierarchy. */
+:root {
+  --experiment-name: #fff;
+  --experiment-selected: #fff;
+  --experiment-heading: #bdbdbd;
+  --experiment-inactive: #bdbdbd;
+  --experiment-subtitle: #999;
+  --experiment-outline-idle: #5b5b5b;
+  --experiment-outline-engaged: #858585;
+  --experiment-outline-width: 0.8;
+  --experiment-inner-width: 0.65;
+  --experiment-back-width: 0.45;
+  --experiment-divider-width: 0.45;
+  --experiment-inner-ink: 82%;
+  --experiment-back-ink: 58%;
+  --experiment-divider-ink: 60%;
+  --experiment-inactive-opacity: 0.82;
+  --experiment-inactive-depth-range: 0.12;
+  --experiment-selected-weight: 700;
+  --experiment-selected-scale: 1.025;
+  --experiment-emphasis-duration: 140ms;
+  --experiment-marker-color: #777;
+  --experiment-marker-length: 12px;
+  --experiment-marker-thickness: 1px;
+  --experiment-marker-gap: 12px;
+}
+
+.identity h1 { color: var(--experiment-name); }
+.identity p { color: var(--experiment-subtitle); }
+.wheel { --experiment-outline: var(--experiment-outline-idle); }
+.wheel:is(:focus-within, [data-dragging='true'], [data-rotating='true']) {
+  --experiment-outline: var(--experiment-outline-engaged);
+}
+@media (hover: hover) {
+  .wheel:hover { --experiment-outline: var(--experiment-outline-engaged); }
+}
+
+.wheel .rail-front { stroke: var(--experiment-outline); stroke-width: var(--experiment-outline-width); }
+.wheel .rail-inner { stroke: color-mix(in srgb, var(--experiment-outline) var(--experiment-inner-ink), #000); stroke-width: var(--experiment-inner-width); }
+.wheel .rail-back { stroke: color-mix(in srgb, var(--experiment-outline) var(--experiment-back-ink), #000); stroke-width: var(--experiment-back-width); }
+.wheel .row-line { stroke: color-mix(in srgb, var(--experiment-outline) var(--experiment-divider-ink), #000); stroke-width: var(--experiment-divider-width); }
+.wheel--expanded :is(.rail-start, .rail-end) { stroke: var(--experiment-outline); stroke-width: var(--experiment-outline-width); }
+.wheel-title { color: var(--experiment-heading); }
+
+.wheel-item {
+  color: var(--experiment-inactive);
+  opacity: calc((var(--experiment-inactive-opacity) + var(--experiment-inactive-depth-range) * var(--entry-depth)) * var(--entry-fade));
+  transition: color var(--experiment-emphasis-duration) ease, opacity var(--experiment-emphasis-duration) ease;
+}
+.wheel-item[data-selected='true'] {
+  color: var(--experiment-selected);
+  opacity: var(--entry-fade);
+}
+.wheel-label {
+  transform-origin: left center;
+  transition: transform var(--experiment-emphasis-duration) ease;
+}
+.wheel-item[data-selected='true'] .wheel-label {
+  font-weight: var(--experiment-selected-weight);
+  transform: scale(var(--experiment-selected-scale));
+}
+
+/* Four quiet ticks bracket the shared selection row; mobile brackets its one
+   visible wheel. They stay fixed while entries travel through the focal plane. */
+.wheel::before, .wheel::after {
+  content: '';
+  position: absolute;
+  top: var(--focus-y);
+  width: var(--experiment-marker-length);
+  height: var(--experiment-marker-thickness);
+  background: var(--experiment-marker-color);
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity var(--experiment-emphasis-duration) ease;
+}
+.wheel::before { left: calc(var(--focus-left) - var(--experiment-marker-gap) - var(--experiment-marker-length)); }
+.wheel::after { content: none; left: calc(var(--focus-right) + var(--experiment-marker-gap)); }
+.wheel:last-child::after { content: ''; }
+.wheel:is(.wheel--expanded, .wheel--parked)::before,
+.wheel:is(.wheel--expanded, .wheel--parked)::after { opacity: 0; }
+@media (max-width: 900px) {
+  .wheel::after { content: ''; }
+}

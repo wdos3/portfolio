@@ -38,6 +38,12 @@ Each entry has an `icon` key corresponding to the thin SVG icons in `src/compone
 
 Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. ABOUT, WORK, and CONTACT are stationary topics within the upper cylinder face; they never occupy a rotating slot. Their shared vertical anchor and surface centering use the same geometry as the entries. Rail control points also determine separator endpoints, so dividers terminate on the outlines. A reserved upper region keeps rotating entries clear of the topics. Only the rails morph during expansion, so row separators cannot lag behind a drag. The retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
 
+## Visual hierarchy experiment
+
+`src/styles/typography-experiment.css` contains the isolated typography-first treatment. Its root tokens control text tones, inactive opacity, selected label emphasis, outline contrast and widths, interaction brightness, and the small selection ticks. Wheel geometry, input handling, data, and URLs are shared with the existing implementation.
+
+To restore the previous appearance, remove only `import './styles/typography-experiment.css';` from `src/main.tsx` and rebuild. The base styles remain intact; no unrelated changes need to be reverted. The extra geometry variables and rotation attribute are passive styling hooks. Small selection ticks mark the stationary focal plane and disappear during expansion; reduced-motion preferences disable the experiment's transitions.
+
 ## Direct links
 
 Hash URLs work on static hosts and under repository subpaths without rewrite rules:

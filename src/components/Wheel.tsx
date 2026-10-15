@@ -22,6 +22,7 @@ interface WheelProps {
 // Coordinates share a 360 × 640 design space with the SVG rails.
 const itemAngle = 0.48;
 const rotationRadius = 205;
+const focusY = 310;
 const surfaceTop = 70;
 const headingY = surfaceTop + 80;
 const entriesTop = headingY + 40;
@@ -37,6 +38,7 @@ const centerRail: RailCurve = { edge: 66, control: 25, top: surfaceTop, bottom: 
 const centerEnd: RailCurve = { ...centerRail, edge: 360 - centerRail.edge, control: 360 - centerRail.control };
 const centerBack: RailCurve = { ...centerRail, edge: 50, control: 5 };
 const outerRail: RailCurve = { edge: 125, control: 20, top: 0, bottom: 640 };
+const outerBack: RailCurve = { ...outerRail, control: -18 };
 const innerRail: RailCurve = { edge: 344, control: 320, top: surfaceTop, bottom: 600 };
 
 function railPath({ edge, control, top, bottom }: RailCurve) {
@@ -80,7 +82,7 @@ function RailFrame({ variant }: { variant: WheelVariant }) {
   }
   return (
     <g transform={variant === 'right' ? 'translate(360 0) scale(-1 1)' : undefined}>
-      <path className="rail-back" d={railPath({ ...outerRail, control: -18 })} />
+      <path className="rail-back" d={railPath(outerBack)} />
       <path className="rail-front rail-start" d={railPath(outerRail)} />
       <path className="rail-inner rail-end" d={railPath(innerRail)} />
     </g>
@@ -102,13 +104,18 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
     }
     hadDetail.current = !!detail;
   }, [detail, ref, selected]);
-  const rowY = (offset: number) => 310 + rotationRadius * Math.sin(offset * itemAngle);
+  const rowY = (offset: number) => focusY + rotationRadius * Math.sin(offset * itemAngle);
   const heading = rowGeometry(headingY, section.variant);
+  const focus = rowGeometry(focusY, section.variant);
+  const backX = railX(section.variant === 'center' ? centerBack : outerBack, focusY);
   const wheelStyle = {
     '--heading-x': `${(heading.left + heading.right) / 7.2}%`,
     '--heading-y': `${headingY / 6.4}%`,
     '--heading-skew': `${heading.skew}deg`,
     '--entries-top': `${entriesTop / 6.4}%`,
+    '--focus-y': `${focusY / 6.4}%`,
+    '--focus-left': `${(section.variant === 'right' ? focus.left : backX) / 3.6}%`,
+    '--focus-right': `${(section.variant === 'left' ? focus.right : 360 - backX) / 3.6}%`,
   } as CSSProperties;
 
   return (
@@ -119,6 +126,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
       data-section={section.id}
       data-mobile-active={mobileActive}
       data-dragging={dragging}
+      data-rotating={!Number.isInteger(position)}
       inert={!!parkSide}
       aria-labelledby={`${section.id}-title`}
       aria-describedby="wheel-instructions"
@@ -167,6 +175,8 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
             '--icon-tilt': `${-angle * 12}deg`,
             '--icon-scale': 0.78 + 0.22 * depth ** 4,
             '--entry-opacity': (0.5 + 0.5 * depth ** 4) * edgeFade * headingClearance,
+            '--entry-depth': depth ** 4,
+            '--entry-fade': edgeFade * headingClearance,
             visibility: visible ? 'visible' : 'hidden',
           } as CSSProperties;
           function activate() {

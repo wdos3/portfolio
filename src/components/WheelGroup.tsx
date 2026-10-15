@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PortfolioEntry, PortfolioSection } from '../data/portfolio';
 import { sections } from '../data/portfolio';
 import { Wheel } from './Wheel';
@@ -17,8 +17,6 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
   const [mobileSection, setMobileSection] = useState(selection?.section.id ?? 'work');
   const [retainedSelection, setRetainedSelection] = useState(selection);
   const reducedMotion = useReducedMotion();
-  const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const suppressClick = useRef(false);
   const shownSelection = selection ?? retainedSelection;
   const visibleSection = shownSelection?.section.id ?? mobileSection;
   const parkedSections = sections.filter((section) => section.id !== selection?.section.id);
@@ -49,36 +47,7 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
         Click an icon to bring it forward, then click the selected icon or press Enter to open details.
         On mobile, swipe horizontally to change sections.
       </p>
-      <div
-        className="wheel-group"
-        onClickCapture={(event) => {
-          if (suppressClick.current) {
-            suppressClick.current = false;
-            event.preventDefault();
-            event.stopPropagation();
-          }
-        }}
-        onPointerDown={(event) => {
-          if (selection) return;
-          if (event.isPrimary) {
-            suppressClick.current = false;
-            swipeStart.current = { x: event.clientX, y: event.clientY };
-          }
-        }}
-        onPointerUp={(event) => {
-          const start = swipeStart.current;
-          swipeStart.current = null;
-          if (selection || !start || !window.matchMedia('(max-width: 900px)').matches) return;
-          const dx = event.clientX - start.x;
-          const dy = event.clientY - start.y;
-          if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-            suppressClick.current = true;
-            const index = sections.findIndex((section) => section.id === mobileSection);
-            setMobileSection(sections[Math.max(0, Math.min(sections.length - 1, index + (dx < 0 ? 1 : -1)))].id);
-          }
-        }}
-        onPointerCancel={() => { swipeStart.current = null; }}
-      >
+      <div className="wheel-group">
         {sections.map((section) => (
           <Wheel key={section.id} section={section} mobileActive={section.id === visibleSection}
             expanded={selection?.section.id === section.id} hasExpansion={!!selection}
@@ -86,6 +55,11 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
             detail={shownSelection?.section.id === section.id ? shownSelection : null}
             onClose={onClose} onCollapseComplete={() => { if (!selection) setRetainedSelection(null); }}
             onActivate={(target, entry) => { setMobileSection(target.id); onActivate(target, entry); }}
+            onHorizontalSwipe={(direction) => {
+              if (!window.matchMedia('(max-width: 900px)').matches) return;
+              const index = sections.findIndex((candidate) => candidate.id === section.id);
+              setMobileSection(sections[Math.max(0, Math.min(sections.length - 1, index + (direction === 'next' ? 1 : -1)))].id);
+            }}
           />
         ))}
       </div>

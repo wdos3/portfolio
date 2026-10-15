@@ -16,9 +16,13 @@ interface WheelProps {
   onActivate: (section: PortfolioSection, entry: PortfolioEntry) => void;
   onClose: () => void;
   onCollapseComplete: () => void;
+  onHorizontalSwipe: (direction: 'previous' | 'next') => void;
 }
 
 // Coordinates share a 360 × 640 design space with the SVG rails.
+const itemAngle = 0.48;
+const rotationRadius = 235;
+
 function rowGeometry(y: number, variant: WheelVariant) {
   if (variant === 'center') {
     const inset = 36 + 19 * ((y - 338) / 260) ** 2;
@@ -52,11 +56,13 @@ function RailFrame({ variant }: { variant: WheelVariant }) {
   );
 }
 
-export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide, detail, onActivate, onClose, onCollapseComplete }: WheelProps) {
-  const { ref, position, selected, select, canActivate, isTap, consumeClick, handlers } = useWheel(section.entries.length, {
+export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide, detail, onActivate, onClose, onCollapseComplete, onHorizontalSwipe }: WheelProps) {
+  const { ref, position, selected, dragging, select, canActivate, isTap, consumeClick, handlers } = useWheel(section.entries.length, {
+    dragStepRatio: rotationRadius * itemAngle / 640,
     enabled: !hasExpansion,
     initialIndex: section.id === 'work' ? 0 : 1,
     requestedIndex: expanded && detail ? section.entries.findIndex((entry) => entry.id === detail.entry.id) : undefined,
+    onHorizontalSwipe,
   });
   const hadDetail = useRef(!!detail);
   useEffect(() => {
@@ -65,8 +71,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
     }
     hadDetail.current = !!detail;
   }, [detail, ref, selected]);
-  const rowY = (offset: number) => 330 + 235 * Math.sin(offset * 0.48);
-  const titleLine = rowGeometry(section.variant === 'center' ? 98 : 79, section.variant);
+  const rowY = (offset: number) => 330 + rotationRadius * Math.sin(offset * itemAngle);
   const lastOffset = section.entries.length - position - 0.5;
   const lastLine = section.entries.length > 0 && Math.abs(lastOffset) < 3.2
     ? rowGeometry(rowY(lastOffset), section.variant)
@@ -78,6 +83,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
       className={`wheel wheel--${section.variant}${expanded ? ' wheel--expanded' : ''}${parkSide ? ` wheel--parked wheel--parked-${parkSide}` : ''}`}
       data-section={section.id}
       data-mobile-active={mobileActive}
+      data-dragging={dragging}
       inert={!!parkSide}
       aria-labelledby={`${section.id}-title`}
       aria-describedby="wheel-instructions"
@@ -86,9 +92,9 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
         if (event.target === event.currentTarget && event.propertyName === 'width' && !expanded && detail) onCollapseComplete();
       }}
     >
+      <h2 id={`${section.id}-title`} className="wheel-title">{section.title}</h2>
       <svg className="wheel-frame" viewBox="0 0 360 640" preserveAspectRatio="none" fill="none" aria-hidden="true">
         <RailFrame variant={section.variant} />
-        <path className="row-line row-line--edge" d={`M ${titleLine.left} ${titleLine.leftY} L ${titleLine.right} ${titleLine.rightY}`} />
         {section.entries.map((entry, index) => {
           const offset = index - position;
           if (Math.abs(offset - 0.5) > 3.2) return null;
@@ -98,14 +104,13 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
         {lastLine && <path className="row-line row-line--edge" d={`M ${lastLine.left} ${lastLine.leftY} L ${lastLine.right} ${lastLine.rightY}`} />}
       </svg>
 
-      <h2 id={`${section.id}-title`} className="wheel-title">{section.title}</h2>
       <div className="wheel-surface" inert={!!detail} aria-hidden={!!detail}>
         {section.entries.map((entry, index) => {
           const offset = index - position;
           const y = rowY(offset);
           const row = rowGeometry(y, section.variant);
           const active = selected === index;
-          const angle = offset * 0.48;
+          const angle = offset * itemAngle;
           const depth = Math.max(0, Math.cos(angle));
           const edgeFade = Math.max(0, Math.min(1, (1.4 - Math.abs(angle)) / 0.25));
           const bend = section.variant === 'left' ? 52 : section.variant === 'right' ? -52 : 0;

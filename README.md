@@ -36,7 +36,7 @@ The initial profile copy and project descriptions/technologies are explicitly la
 
 Each entry has an `icon` key corresponding to the thin SVG icons in `src/components/Icon.tsx`. Projects may omit it to use the folder icon. Names are retained for screen readers, hover/focus labels, and detail headings. No item numbering is displayed. Software Projects starts in front of WORK; the other wheels start with their second entry when available. Small screens initially show WORK.
 
-Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. The icons follow a sine/cosine cylindrical path. SVG paths morph into straight rails while the selected wheel widens; the retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
+Geometry and responsive rules live in `src/styles/wheels.css` and `src/components/Wheel.tsx`. ABOUT, WORK, and CONTACT are fixed topic headings above the selectable entries; they never occupy a wheel slot. The icons and separators follow the same cylindrical path. Only the rails morph during expansion, so row separators cannot lag behind a drag. The retained detail content fades out during the reverse transition. Shared typography and detail views live in `src/styles/global.css`.
 
 ## Direct links
 
@@ -52,11 +52,11 @@ Every project provides a Copy project link action. Reloading, opening a link dir
 
 ## Controls
 
-- Scroll over one wheel or drag vertically: select and snap, bounded at both ends.
+- Scroll over one wheel or drag vertically: select and snap, bounded at both ends. Dragging follows the pointer directly, stops any settling animation when grabbed, and snaps on release. Reversing at an end responds immediately.
 - Click an inactive icon: bring it to the foreground. Click the selected icon: expand that wheel. Names appear on hover or keyboard focus.
 - Tab: move between wheels. Arrow Up/Down, Page Up/Down, Home/End: select within the focused wheel. Enter/Space: open.
 - Escape or Back to wheels: reverse the expansion and restore focus and wheel selections. The scrollable details area is keyboard focusable, and Tab reaches links and actions normally.
-- Mobile: use the three section controls or swipe horizontally. Vertical swipes rotate the visible wheel. Switching sections preserves each selection.
+- Mobile: use the three section controls or swipe horizontally. Each gesture locks to its initial direction so diagonal movements cannot rotate a wheel and change sections together. Switching sections preserves each selection.
 - System reduced-motion preferences disable entrance transitions and smooth interpolation.
 
 ## Validate

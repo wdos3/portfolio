@@ -88,6 +88,9 @@ export function DetailView({ selection, active, onClose }: { selection: DetailSe
                   {block.subtitle && <p className="block-subtitle">{block.subtitle}</p>}
                   {block.text && <p>{block.text}</p>}
                   {block.items && <ul className="inline-list">{block.items.map((item) => <li key={item}>{item}</li>)}</ul>}
+                  {block.links && <div className="detail-actions">{block.links.map((link) => (
+                    <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label} <span aria-hidden="true">↗</span></a>
+                  ))}</div>}
                 </section>)}
               </div>
             </>}

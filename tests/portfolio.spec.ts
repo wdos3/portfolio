@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { portfolio } from '../src/data/portfolio';
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -165,11 +166,25 @@ test('expanded rails straighten and siblings move aside, then return smoothly', 
   await expect(work.getByRole('button', { name: 'Software Projects', exact: true })).toBeFocused();
 });
 
-test('contact values and CV remain honestly unavailable until configured', async ({ page, isMobile }) => {
-  for (const name of ['Email','GitHub','LinkedIn','Location']) {
-    await openEntry(page, 'Contact', name, isMobile);
-    await expect(page.locator('.detail-view')).toContainText('Not added yet.');
-    await expect(page.locator('.detail-view a')).toHaveCount(0);
+test('configured contacts have correct actions and missing CV details remain unavailable', async ({ page, isMobile }) => {
+  for (const contact of portfolio.contact) {
+    await openEntry(page, 'Contact', contact.name, isMobile);
+    const view = page.locator('.detail-view');
+    if (!contact.value) {
+      await expect(view).toContainText('Not added yet.');
+      await expect(view.locator('a')).toHaveCount(0);
+    } else {
+      await expect(view.locator('.contact-value')).toHaveText(contact.value);
+      if (contact.type === 'external') {
+        const link = view.getByRole('link', { name: `Visit ${contact.name}` });
+        await expect(link).toHaveAttribute('href', contact.value);
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      } else if (contact.type === 'email') {
+        await expect(view.getByRole('link', { name: 'Write an email' })).toHaveAttribute('href', `mailto:${contact.value}`);
+        await expect(view.getByRole('button', { name: 'Copy address' })).toBeVisible();
+      } else await expect(view.locator('a')).toHaveCount(0);
+    }
     await closeDetails(page);
   }
   const about=await chooseSection(page,'About',isMobile);
@@ -188,13 +203,17 @@ test('software and experiment details expose every required field without invent
     await expect(page.locator('.detail-heading h3')).toHaveText(name);
     for(const title of ['Problem','My contributions','Challenges','Results']) await expect(page.locator('.detail-view').getByRole('heading',{name:title,exact:true})).toBeAttached();
     await expect(page.locator('.detail-view')).toContainText('No results have been added.');
-    await expect(page.locator('.detail-view')).toContainText('Sample project');
+    const project = portfolio.projects.find(project => project.name === name)!;
+    if (project.placeholder) await expect(page.locator('.detail-view')).toContainText('Sample project');
+    else await expect(page.locator('.detail-view .draft-label')).toHaveCount(0);
     await expect(page.locator('.detail-view')).toContainText('Technologies');
     await expect(page.locator('.detail-view')).toContainText('Development');
     await closeDetails(page);
   }
   await openEntry(page,'Work','AI / ML Research',isMobile);
-  await expect(page.locator('.detail-view')).toContainText('No entries have been added yet.');
+  for (const project of portfolio.projects.filter(project => project.category === 'research')) {
+    await expect(page.locator('.work-list').getByRole('link', { name: new RegExp(project.name) })).toBeVisible();
+  }
 });
 
 test('project URLs survive reload and support copy, back, and forward', async ({ page }) => {

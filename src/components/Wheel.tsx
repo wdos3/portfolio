@@ -97,6 +97,7 @@ export function Wheel({ section, mobileActive, expanded, hasExpansion, parkSide,
         if (event.target === event.currentTarget && event.propertyName === 'width' && !expanded && detail) onCollapseComplete();
       }}
     >
+      <div className="wheel-touch-area" aria-hidden="true" />
       <h2 id={`${section.id}-title`} className="wheel-title">{section.title}</h2>
       <svg className="wheel-frame" viewBox="0 0 360 640" preserveAspectRatio="none" fill="none" aria-hidden="true">
         <RailFrame variant={section.variant} />

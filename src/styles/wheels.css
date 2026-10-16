@@ -26,6 +26,7 @@
 .wheel--left { left: calc(var(--wheel-width) / 2); }
 .wheel--center { left: 50%; width: var(--center-wheel-width); animation-delay: 220ms; }
 .wheel--right { left: calc(100% - var(--wheel-width) / 2); animation-delay: 300ms; }
+.wheel-touch-area { display: none; }
 .wheel-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .wheel-frame path, .segment-frame path { vector-effect: non-scaling-stroke; transition: stroke 220ms ease; }
 .wheel-frame .rail-front, .wheel-frame .rail-inner { transition: d 420ms cubic-bezier(0.22, 0.7, 0.25, 1), stroke 220ms ease; }
@@ -138,10 +139,20 @@
   .wheel-group { width: min(88vw, 355px); height: clamp(410px, 56svh, 530px); }
   .wheel, .wheel--center, .wheel--left, .wheel--right { left: 50%; width: 100%; }
   .wheel[data-mobile-active='false'] { display: none; }
+  .wheel[data-mobile-active='true'] { animation: none; }
+  .wheel[data-mobile-active='true'] > :is(.wheel-title, .wheel-frame, .wheel-surface) { animation: section-enter 220ms ease-out; }
+  /* Extend the existing wheel gesture surface into the side margins without
+     changing its cylindrical projection or introducing a second gesture owner. */
+  .wheel:not(.wheel--expanded) .wheel-touch-area { display: block; position: absolute; inset-block: 0; left: calc((100% - 100vw) / 2); width: 100vw; }
   .wheel-title { font-size: 14px; }
   .wheel-label { font-size: 15px; }
   .wheel--expanded { width: min(650px, calc(100vw - 32px)); }
   .interaction-hint { margin-top: 20px; font-size: 9px; }
   .desktop-hint { display: none; }
   .mobile-hint { display: inline; }
+}
+
+@keyframes section-enter {
+  from { opacity: 0.35; translate: var(--section-slide-from) 0; }
+  to { opacity: 1; translate: 0 0; }
 }

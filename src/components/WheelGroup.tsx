@@ -23,12 +23,21 @@ interface WheelGroupProps {
 
 export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGroupProps) {
   const [mobileSection, setMobileSection] = useState(selection?.section.id ?? 'work');
+  const [slideDirection, setSlideDirection] = useState(1);
   const [retainedSelection, setRetainedSelection] = useState(selection);
   const [hasInteracted, setHasInteracted] = useState(false);
   const reducedMotion = useReducedMotion();
   const shownSelection = selection ?? retainedSelection;
   const visibleSection = shownSelection?.section.id ?? mobileSection;
   const parkedSections = sections.filter((section) => section.id !== selection?.section.id);
+
+  function changeMobileSection(sectionId: PortfolioSection['id']) {
+    const current = sections.findIndex((section) => section.id === visibleSection);
+    const next = sections.findIndex((section) => section.id === sectionId);
+    if (current === next) return;
+    setSlideDirection(next > current ? 1 : -1);
+    setMobileSection(sectionId);
+  }
 
   // Keep the content mounted while the rails return to their curved shape.
   // Reduced motion has no transition-end event, so it releases it immediately.
@@ -53,7 +62,7 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
     >
       <div className="mobile-sections" role="group" aria-label="Choose a section" inert={!!selection}>
         {sections.map((section) => (
-          <button key={section.id} aria-label={section.title} aria-pressed={section.id === visibleSection} onClick={() => setMobileSection(section.id)}>
+          <button key={section.id} aria-label={section.title} aria-pressed={section.id === visibleSection} onClick={() => changeMobileSection(section.id)}>
             <Icon name={section.icon} />
             <span className="section-label" aria-hidden="true">{section.title}</span>
           </button>
@@ -64,7 +73,7 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
         Click or tap any labeled entry to open its details. Press Enter or Space to open the focused entry.
         On mobile, swipe horizontally to change sections.
       </p>
-      <div className="wheel-group" style={markerGeometry}>
+      <div className="wheel-group" style={{ ...markerGeometry, '--section-slide-from': `${slideDirection * 24}px` } as CSSProperties}>
         {sections.map((section) => (
           <Wheel key={section.id} section={section} mobileActive={section.id === visibleSection}
             expanded={selection?.section.id === section.id} hasExpansion={!!selection}
@@ -75,14 +84,14 @@ export function WheelGroup({ onActivate, selection, notFound, onClose }: WheelGr
             onHorizontalSwipe={(direction) => {
               if (!window.matchMedia('(max-width: 900px)').matches) return;
               const index = sections.findIndex((candidate) => candidate.id === section.id);
-              setMobileSection(sections[Math.max(0, Math.min(sections.length - 1, index + (direction === 'next' ? 1 : -1)))].id);
+              changeMobileSection(sections[Math.max(0, Math.min(sections.length - 1, index + (direction === 'next' ? 1 : -1)))].id);
             }}
           />
         ))}
       </div>
       {notFound ? <p className="interaction-hint" role="status">This entry is unavailable. <a href="#">Return to wheels</a></p> : <p className={`interaction-hint${hasInteracted ? ' interaction-hint--dismissed' : ''}`} aria-hidden="true">
         <span className="desktop-hint">Scroll or ↑ ↓ to rotate<span className="hint-separator">·</span>Click or Enter to explore</span>
-        <span className="mobile-hint">Swipe to rotate<span className="hint-separator">·</span>Tap to explore</span>
+        <span className="mobile-hint">Swipe ↔ sections · ↕ rotate · Tap to explore</span>
       </p>}
     </div>
   );

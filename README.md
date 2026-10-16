@@ -68,7 +68,7 @@ Every project provides a Copy project link action. Reloading, opening a link dir
 - Click or tap any labeled entry: select it and expand its wheel in one action.
 - Tab: move between wheels. Arrow Up/Down, Page Up/Down, Home/End: select within the focused wheel. Enter/Space: open.
 - Escape or Back to wheels: reverse the expansion and restore focus and wheel selections. The scrollable details area is keyboard focusable, and Tab reaches links and actions normally.
-- Mobile: use the three section controls or swipe horizontally. Each gesture locks to its initial direction so diagonal movements cannot rotate a wheel and change sections together. Switching sections preserves each selection.
+- Mobile: use the three section controls or swipe left/right anywhere across the wheel area, including its side margins. Swipe left for the next section and right for the previous section; the ends do not wrap. Swipe vertically to rotate the current wheel. Each gesture locks to its initial direction so diagonal movements cannot rotate a wheel and change sections together. Switching sections preserves each selection. Horizontal section gestures are disabled while details are expanded.
 - System reduced-motion preferences disable entrance transitions and smooth interpolation.
 - The visible interaction hint disappears after the first rotation, press, or activation in the current visit. Keyboard and screen-reader instructions remain available.
 
